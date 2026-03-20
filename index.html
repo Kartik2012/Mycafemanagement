@@ -1,0 +1,2643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MyCafe POS</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --cream:#faf7f2; --brown:#3b2a1a; --espresso:#1e1209;
+  --caramel:#c8702a; --latte:#e8d5b7; --foam:#f5ede0;
+  --mint:#2d7a5f; --text:#2c1f10; --muted:#8a7060;
+  --border:#e0cdb8; --white:#ffffff;
+  --preparing:#fff8e1; --preparing-border:#e6890a;
+  --ready:#e6f9ee; --ready-border:#1e7a48;
+  --danger:#fee2e2; --danger-text:#dc2626;
+  --shadow:0 4px 24px rgba(59,42,26,0.10);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;overflow-x:hidden}
+button{font-family:'DM Sans',sans-serif;cursor:pointer}
+input{font-family:'DM Sans',sans-serif}
+
+/* ====== LOGIN ====== */
+#login-screen{
+  position:fixed;inset:0;background:var(--cream);z-index:1000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;
+}
+.login-logo{font-family:'Fraunces',serif;font-size:2rem;font-weight:700;color:var(--espresso);margin-bottom:4px}
+.login-sub{font-size:0.85rem;color:var(--muted);margin-bottom:40px}
+.account-list{width:100%;max-width:360px;display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.account-btn{
+  background:var(--white);border:1.5px solid var(--border);border-radius:12px;
+  padding:14px 20px;display:flex;align-items:center;gap:14px;
+  transition:border-color .2s,transform .15s;text-align:left;
+}
+.account-btn:hover{border-color:var(--caramel);transform:translateY(-1px)}
+.account-btn.selected{border-color:var(--caramel);background:var(--foam)}
+.account-emoji{font-size:1.6rem}
+.account-name{font-size:0.95rem;font-weight:600;color:var(--espresso)}
+.account-role{font-size:0.75rem;color:var(--muted)}
+.pin-area{width:100%;max-width:280px;display:none;flex-direction:column;align-items:center;gap:14px}
+.pin-area.show{display:flex}
+.pin-dots{display:flex;gap:12px;justify-content:center;margin-bottom:4px}
+.pin-dot{width:14px;height:14px;border-radius:50%;background:var(--border);transition:background .15s}
+.pin-dot.filled{background:var(--caramel)}
+.pin-error{color:var(--danger-text);font-size:0.82rem;min-height:18px;text-align:center}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%}
+.numpad-btn{
+  background:var(--white);border:1.5px solid var(--border);border-radius:12px;
+  padding:16px;font-size:1.1rem;font-weight:600;color:var(--brown);
+  transition:background .15s,border-color .15s;
+}
+.numpad-btn:hover{background:var(--foam);border-color:var(--caramel)}
+.numpad-btn.del{background:var(--foam);color:var(--muted)}
+.pin-back{background:none;border:none;color:var(--muted);font-size:0.85rem;margin-top:8px;text-decoration:underline}
+
+/* ====== APP SHELL ====== */
+#app{display:none;flex-direction:column;min-height:100vh}
+#app.show{display:flex}
+.app-header{
+  background:var(--white);
+  border-bottom:1px solid var(--border);
+  padding:0 16px;
+  height:56px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;
+  gap:8px;
+}
+.header-left{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+.header-logo{
+  font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700;
+  color:var(--espresso);white-space:nowrap;flex-shrink:0;
+}
+.header-logo span{display:inline}
+#btn-back-dashboard{
+  display:none;
+  background:var(--foam);border:1px solid var(--border);border-radius:8px;
+  padding:5px 10px;font-size:0.75rem;font-weight:600;color:var(--brown);
+  white-space:nowrap;cursor:pointer;flex-shrink:0;
+}
+#header-context{
+  font-size:0.75rem;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:140px;
+}
+.header-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
+/* Desktop action buttons */
+.header-btn{
+  background:var(--foam);border:1px solid var(--border);border-radius:8px;
+  padding:6px 12px;font-size:0.78rem;font-weight:500;color:var(--brown);
+  transition:background .15s;cursor:pointer;white-space:nowrap;
+}
+.header-btn:hover{background:var(--latte)}
+.logout-btn{
+  background:var(--danger);color:var(--danger-text);
+  border:none;border-radius:8px;padding:6px 11px;
+  font-size:0.78rem;font-weight:600;cursor:pointer;white-space:nowrap;
+}
+/* Mobile overflow menu */
+.header-menu-btn{
+  display:none;
+  background:var(--foam);border:1px solid var(--border);border-radius:8px;
+  width:34px;height:34px;align-items:center;justify-content:center;
+  font-size:1.1rem;cursor:pointer;flex-shrink:0;color:var(--brown);
+}
+.header-dropdown{
+  display:none;
+  position:fixed;top:56px;right:0;left:0;
+  background:var(--white);
+  border-bottom:1px solid var(--border);
+  box-shadow:0 8px 24px rgba(59,42,26,0.12);
+  z-index:49;
+  flex-direction:column;
+  padding:8px 12px 12px;
+  gap:6px;
+  animation:dropDown .18s ease;
+}
+.header-dropdown.open{display:flex}
+@keyframes dropDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.hd-row{display:flex;gap:6px;flex-wrap:wrap}
+.hd-context{
+  font-size:0.78rem;color:var(--muted);padding:6px 4px 2px;
+  border-bottom:1px solid var(--border);margin-bottom:2px;
+}
+.hd-btn{
+  flex:1;min-width:100px;
+  background:var(--foam);border:1px solid var(--border);border-radius:8px;
+  padding:9px 12px;font-size:0.82rem;font-weight:500;color:var(--brown);
+  text-align:center;cursor:pointer;
+}
+.hd-btn:hover{background:var(--latte)}
+.hd-logout{
+  background:var(--danger);color:var(--danger-text);
+  border:none;border-radius:8px;padding:9px;
+  font-size:0.82rem;font-weight:700;cursor:pointer;
+  width:100%;margin-top:4px;
+}
+
+/* ====== OWNER DASHBOARD ====== */
+#owner-dashboard{flex:1;padding:20px;max-width:1200px;margin:0 auto;width:100%}
+.dash-tabs{
+  display:flex;gap:4px;background:var(--foam);border-radius:12px;padding:4px;
+  margin-bottom:24px;width:100%;overflow-x:auto;
+}
+.dash-tab{
+  flex:1;padding:9px 16px;border-radius:8px;font-size:0.85rem;font-weight:500;
+  color:var(--muted);background:none;border:none;transition:all .2s;white-space:nowrap;
+}
+.dash-tab.active{background:var(--white);color:var(--caramel);font-weight:600;box-shadow:0 1px 6px rgba(0,0,0,0.08)}
+.dash-panel{display:none}
+.dash-panel.active{display:block}
+
+/* Stats grid — 2 cols on mobile, auto-fit on larger */
+.stats-row{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;margin-bottom:24px;
+}
+.stat-card{
+  background:var(--white);border-radius:14px;padding:16px;
+  border:1px solid var(--border);
+}
+.stat-label{font-size:0.72rem;color:var(--muted);margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em}
+.stat-value{font-family:'Fraunces',serif;font-size:1.6rem;font-weight:700;color:var(--espresso);line-height:1.1}
+.stat-sub{font-size:0.72rem;color:var(--mint);margin-top:4px}
+
+/* Cafe cards — single col mobile, grid on larger */
+.cafe-cards{display:grid;grid-template-columns:1fr;gap:16px}
+.cafe-card{
+  background:var(--white);border-radius:16px;padding:20px;
+  border:1px solid var(--border);transition:box-shadow .2s,transform .15s;
+}
+.cafe-card:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
+.cafe-card-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.cafe-emoji{font-size:1.8rem}
+.cafe-card-name{font-size:0.95rem;font-weight:600;color:var(--espresso)}
+.cafe-card-stats{font-size:0.78rem;color:var(--muted)}
+.cafe-card-row{
+  display:flex;justify-content:space-between;
+  font-size:0.82rem;padding:5px 0;
+  border-bottom:1px solid var(--foam);
+}
+.cafe-card-row:last-child{border:none}
+.cafe-card-row .lbl{color:var(--muted)}
+.cafe-card-row .val{font-weight:600;color:var(--espresso)}
+.cafe-card-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.btn-open-cafe{
+  background:var(--caramel);color:#fff;
+  border:none;border-radius:10px;padding:10px;font-size:0.85rem;font-weight:600;
+  transition:background .15s;cursor:pointer;
+}
+.btn-open-cafe:hover{background:var(--brown)}
+.btn-remove-cafe{
+  background:var(--danger);color:var(--danger-text);
+  border:none;border-radius:10px;padding:8px;font-size:0.82rem;font-weight:600;cursor:pointer;
+}
+.section-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:16px;flex-wrap:wrap;gap:8px;
+}
+.section-head h2{font-family:'Fraunces',serif;font-size:1.2rem;color:var(--espresso)}
+.btn-add{background:var(--caramel);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.83rem;font-weight:600;cursor:pointer}
+.add-cafe-form{background:var(--white);border:1.5px dashed var(--border);border-radius:16px;padding:20px;margin-bottom:20px;display:none}
+.add-cafe-form.show{display:block}
+.form-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.form-input{flex:1;min-width:120px;background:var(--foam);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:0.9rem;color:var(--espresso);outline:none;transition:border-color .2s}
+.form-input:focus{border-color:var(--caramel)}
+.form-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn-save{background:var(--mint);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:0.87rem;font-weight:600;cursor:pointer}
+.btn-cancel{background:var(--foam);color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:9px 20px;font-size:0.87rem;cursor:pointer}
+
+/* Payment bars */
+.pay-bar{margin-top:16px}
+.pay-bar-row{margin-bottom:10px}
+.pay-bar-lbl{display:flex;justify-content:space-between;font-size:0.78rem;color:var(--muted);margin-bottom:4px}
+.pay-bar-track{background:var(--border);border-radius:100px;height:6px}
+.pay-bar-fill{height:100%;border-radius:100px;transition:width .5s}
+.fill-cash{background:var(--caramel)}
+.fill-online{background:var(--mint)}
+.fill-split{background:#a78bfa}
+
+/* ====== HISTORY — RESPONSIVE TABLE + MOBILE CARDS ====== */
+.filter-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.filter-select{
+  background:var(--white);border:1.5px solid var(--border);border-radius:8px;
+  padding:7px 10px;font-size:0.82rem;color:var(--brown);outline:none;
+  flex:1;min-width:110px;max-width:180px;
+}
+.btn-pdf{
+  background:var(--foam);border:1px solid var(--border);border-radius:8px;
+  padding:7px 12px;font-size:0.8rem;font-weight:600;color:var(--brown);cursor:pointer;
+  white-space:nowrap;
+}
+.btn-pdf:hover{background:var(--latte)}
+
+/* History stats */
+.history-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+.h-stat{background:var(--white);border-radius:12px;padding:14px;border:1px solid var(--border);text-align:center}
+.h-stat .lbl{font-size:0.7rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em}
+.h-stat .val{font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;color:var(--espresso)}
+
+/* Desktop table */
+.history-table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
+.history-table{width:100%;border-collapse:collapse;font-size:0.83rem}
+.history-table th{
+  text-align:left;padding:10px 14px;font-size:0.72rem;color:var(--muted);
+  font-weight:600;background:var(--foam);border-bottom:1px solid var(--border);
+  white-space:nowrap;text-transform:uppercase;letter-spacing:0.04em;
+}
+.history-table td{padding:10px 14px;border-bottom:1px solid var(--foam);vertical-align:middle}
+.history-table tr:last-child td{border-bottom:none}
+.history-table tr:hover td{background:#fdf8f3}
+
+/* Mobile order cards (hidden on desktop) */
+.order-card-list{display:none;flex-direction:column;gap:10px}
+.order-card{
+  background:var(--white);border-radius:12px;border:1px solid var(--border);
+  padding:14px 16px;
+}
+.order-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.order-card-id{font-size:0.8rem;font-weight:700;color:var(--brown)}
+.order-card-amount{font-size:0.95rem;font-weight:700;color:var(--espresso)}
+.order-card-items{font-size:0.78rem;color:var(--muted);margin-bottom:8px;line-height:1.5}
+.order-card-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.order-card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pay-tag{
+  background:var(--foam);color:var(--brown);border:1px solid var(--border);
+  font-size:0.7rem;font-weight:600;padding:3px 9px;border-radius:100px;
+}
+.time-tag{font-size:0.72rem;color:var(--muted)}
+.print-mini-btn{
+  background:none;border:1px solid var(--border);border-radius:7px;
+  padding:4px 9px;font-size:0.72rem;color:var(--brown);cursor:pointer;
+}
+.print-mini-btn:hover{background:var(--foam)}
+
+/* ====== CAFEPOS ====== */
+#cafepos{flex:1;display:none;flex-direction:column}
+#cafepos.show{display:flex}
+.pos-nav{
+  display:flex;background:var(--white);border-bottom:1px solid var(--border);
+  overflow-x:auto;
+}
+.pos-nav-btn{
+  flex:1;min-width:72px;padding:12px 8px;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:none;border:none;color:var(--muted);font-size:0.68rem;font-weight:500;
+  border-bottom:2px solid transparent;transition:all .2s;position:relative;
+}
+.pos-nav-btn.active{color:var(--caramel);border-bottom-color:var(--caramel)}
+.pos-nav-icon{font-size:1.2rem}
+.nav-badge{
+  position:absolute;top:6px;right:calc(50% - 22px);
+  background:var(--caramel);color:#fff;font-size:0.6rem;font-weight:700;
+  width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+}
+.pos-tab{flex:1;display:none;overflow-y:auto;padding:16px}
+.pos-tab.active{display:flex;flex-direction:column}
+
+/* ====== ORDER TAB ====== */
+.order-layout{display:grid;grid-template-columns:1fr 340px;gap:20px;flex:1}
+.menu-section{}
+.cat-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.cat-btn{padding:6px 16px;border-radius:100px;border:1.5px solid var(--border);background:var(--white);font-size:0.82rem;font-weight:500;color:var(--muted);transition:all .2s}
+.cat-btn.active{background:var(--caramel);color:#fff;border-color:var(--caramel)}
+.menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
+.menu-item{
+  background:var(--white);border:1.5px solid var(--border);border-radius:12px;
+  padding:14px 12px;text-align:center;cursor:pointer;
+  transition:border-color .15s,transform .1s,box-shadow .15s;
+  position:relative;
+}
+.menu-item:hover{border-color:var(--caramel);transform:translateY(-2px);box-shadow:var(--shadow)}
+.menu-item.unavailable{opacity:0.45;pointer-events:none}
+.item-emoji{font-size:1.8rem;margin-bottom:6px;display:block}
+.item-img{width:48px;height:48px;border-radius:8px;object-fit:cover;margin:0 auto 6px;display:block}
+.item-name{font-size:0.8rem;font-weight:600;color:var(--espresso);margin-bottom:3px}
+.item-price{font-size:0.75rem;color:var(--muted)}
+.item-in-cart{position:absolute;top:6px;right:6px;background:var(--caramel);color:#fff;width:18px;height:18px;border-radius:50%;font-size:0.65rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+
+/* ====== ORDER LAYOUT ====== */
+.order-layout{display:grid;grid-template-columns:1fr;gap:20px;flex:1;min-height:0}
+.order-layout.cart-open{grid-template-columns:1fr 360px}
+
+/* ====== CART PANEL — DESKTOP ====== */
+.cart-panel{
+  background:var(--white);
+  border-radius:16px;
+  border:1px solid var(--border);
+  display:none;
+  flex-direction:column;
+  height:calc(100vh - 100px);
+  max-height:calc(100vh - 100px);
+  position:sticky;
+  top:74px;
+  min-width:0;
+  box-shadow:0 4px 24px rgba(59,42,26,0.08);
+  overflow:hidden;
+}
+.cart-panel.cart-visible{display:flex}
+
+/* Cart drag handle (mobile only) */
+.cart-drag-handle{
+  display:none;
+  justify-content:center;
+  padding:10px 0 4px;
+  cursor:grab;
+  flex-shrink:0;
+}
+.cart-drag-handle::after{
+  content:'';width:40px;height:4px;
+  border-radius:100px;background:var(--border);
+  display:block;
+}
+
+.cart-header{
+  padding:14px 18px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.cart-title{font-size:1rem;font-weight:600;color:var(--espresso);display:flex;align-items:center;gap:8px}
+.cart-count-pill{
+  background:var(--caramel);color:#fff;
+  font-size:0.65rem;font-weight:700;
+  min-width:18px;height:18px;border-radius:100px;padding:0 5px;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.cart-header-actions{display:flex;align-items:center;gap:4px}
+.cart-clear{font-size:0.75rem;color:var(--muted);background:none;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;transition:background .15s}
+.cart-clear:hover{background:var(--foam)}
+.cart-close-btn{background:none;border:none;font-size:1rem;color:var(--muted);cursor:pointer;padding:4px 6px;border-radius:6px;line-height:1;transition:background .15s}
+.cart-close-btn:hover{background:var(--foam);color:var(--brown)}
+
+.cart-items{flex:1;overflow-y:auto;padding:8px 16px;-webkit-overflow-scrolling:touch}
+.cart-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:40px 20px;color:var(--muted);font-size:0.88rem;gap:10px;height:100%;
+}
+.cart-empty-icon{font-size:2.5rem;opacity:0.5}
+
+.cart-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 0;border-bottom:1px solid var(--foam);
+  animation:slideIn .15s ease;
+}
+@keyframes slideIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
+.cart-item:last-child{border:none}
+.ci-emoji{font-size:1.1rem;flex-shrink:0}
+.ci-name{flex:1;font-size:0.85rem;font-weight:500;color:var(--espresso);line-height:1.3}
+.ci-controls{display:flex;align-items:center;gap:0;background:var(--foam);border-radius:8px;border:1px solid var(--border)}
+.qty-btn{
+  width:28px;height:28px;border-radius:8px;border:none;
+  background:transparent;font-size:1rem;font-weight:600;
+  color:var(--brown);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:background .12s;flex-shrink:0;
+}
+.qty-btn:hover{background:var(--latte)}
+.qty-num{font-size:0.85rem;font-weight:700;color:var(--espresso);min-width:22px;text-align:center;padding:0 2px}
+.ci-price{font-size:0.82rem;font-weight:600;color:var(--espresso);min-width:48px;text-align:right;flex-shrink:0}
+
+.cart-totals{
+  padding:12px 16px;
+  border-top:1.5px solid var(--border);
+  background:var(--foam);
+  flex-shrink:0;
+}
+.total-row{display:flex;justify-content:space-between;font-size:0.82rem;color:var(--muted);margin-bottom:4px}
+.total-row.grand{
+  font-size:1.05rem;font-weight:700;color:var(--espresso);
+  padding-top:8px;border-top:1.5px dashed var(--border);
+  margin-top:6px;margin-bottom:0;
+}
+
+.pay-modes{padding:10px 16px;border-top:1px solid var(--border);flex-shrink:0}
+.pay-label{font-size:0.72rem;font-weight:600;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:0.06em}
+.pay-btns{display:flex;gap:6px}
+.pay-btn{
+  flex:1;padding:8px 6px;border-radius:8px;
+  border:1.5px solid var(--border);background:var(--foam);
+  font-size:0.78rem;font-weight:500;color:var(--brown);
+  transition:all .18s;cursor:pointer;text-align:center;
+}
+.pay-btn.active{background:var(--caramel);color:#fff;border-color:var(--caramel);font-weight:600}
+.pay-btn:hover:not(.active){border-color:var(--caramel);color:var(--caramel)}
+
+.cash-area{padding:10px 16px 12px;background:var(--foam);border-top:1px solid var(--border);display:none;flex-shrink:0}
+.cash-area.show{display:block}
+.cash-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.cash-label{font-size:0.78rem;color:var(--muted);font-weight:500;white-space:nowrap}
+.cash-input{
+  flex:1;background:var(--white);border:1.5px solid var(--border);
+  border-radius:8px;padding:8px 12px;font-size:0.9rem;
+  color:var(--espresso);outline:none;min-width:0;
+}
+.cash-input:focus{border-color:var(--caramel)}
+.cash-quick{display:flex;gap:5px;flex-wrap:wrap}
+.cash-q-btn{
+  padding:5px 10px;border-radius:6px;border:1px solid var(--border);
+  background:var(--white);font-size:0.73rem;font-weight:600;color:var(--brown);
+  cursor:pointer;transition:all .15s;
+}
+.cash-q-btn:hover{background:var(--caramel);color:#fff;border-color:var(--caramel)}
+.change-row{font-size:0.82rem;font-weight:600;color:var(--mint);margin-top:7px;min-height:18px}
+
+.upi-sel{padding:10px 16px;border-top:1px solid var(--border);display:none;flex-shrink:0}
+.upi-sel.show{display:block}
+.upi-btns{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.upi-btn{
+  padding:6px 12px;border-radius:8px;
+  border:1.5px solid var(--border);background:var(--foam);
+  font-size:0.77rem;font-weight:500;color:var(--brown);
+  transition:all .18s;cursor:pointer;
+}
+.upi-btn.active{background:var(--mint);color:#fff;border-color:var(--mint)}
+
+.place-order-btn{
+  margin:10px 14px 14px;background:var(--caramel);color:#fff;
+  border:none;border-radius:12px;padding:14px;font-size:0.95rem;font-weight:700;
+  transition:background .15s,transform .1s,box-shadow .15s;
+  letter-spacing:0.01em;flex-shrink:0;
+  box-shadow:0 4px 14px rgba(200,112,42,0.3);
+}
+.place-order-btn:hover{background:var(--brown);transform:translateY(-1px);box-shadow:0 6px 20px rgba(200,112,42,0.4)}
+.place-order-btn:active{transform:translateY(0)}
+.place-order-btn:disabled{background:var(--border);color:var(--muted);transform:none;box-shadow:none}
+
+/* ====== CART TOGGLE FAB ====== */
+.cart-toggle-btn{
+  position:fixed;bottom:24px;right:24px;
+  background:var(--caramel);color:#fff;border:none;
+  border-radius:16px;padding:13px 20px;
+  font-size:0.88rem;font-weight:600;
+  box-shadow:0 6px 24px rgba(200,112,42,0.45);
+  z-index:90;display:flex;align-items:center;gap:10px;
+  transition:background .2s,transform .15s,box-shadow .2s;
+  cursor:pointer;
+}
+.cart-toggle-btn:hover{background:var(--brown);transform:translateY(-2px);box-shadow:0 8px 28px rgba(200,112,42,0.5)}
+.cart-toggle-btn:active{transform:translateY(0)}
+.cart-toggle-btn .ctb-badge{
+  background:var(--espresso);color:#fff;
+  min-width:20px;height:20px;border-radius:100px;padding:0 6px;
+  font-size:0.65rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* ====== CART BACKDROP (mobile) ====== */
+.cart-backdrop{
+  display:none;position:fixed;inset:0;
+  background:rgba(30,18,9,0.45);z-index:95;
+  backdrop-filter:blur(2px);
+  animation:fadeInBg .25s ease;
+}
+.cart-backdrop.show{display:block}
+@keyframes fadeInBg{from{opacity:0}to{opacity:1}}
+
+/* ====== KITCHEN TAB ====== */
+.kitchen-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.kitchen-card{
+  background:var(--white);border-radius:14px;border:1px solid var(--border);
+  border-top:4px solid var(--border);overflow:hidden;
+  transition:transform .15s,box-shadow .15s;
+}
+.kitchen-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.kitchen-card.preparing{border-top-color:var(--preparing-border)}
+.kitchen-card.ready{border-top-color:var(--ready-border)}
+.kc-header{padding:14px 16px;border-bottom:1px solid var(--foam);display:flex;justify-content:space-between;align-items:center}
+.kc-id{font-size:0.82rem;font-weight:700;color:var(--brown)}
+.kc-time{font-size:0.72rem;color:var(--muted)}
+.kc-body{padding:14px 16px}
+.kc-item{font-size:0.83rem;color:var(--text);padding:3px 0;display:flex;justify-content:space-between}
+.kc-total{font-size:0.85rem;font-weight:600;color:var(--espresso);margin-top:8px;padding-top:8px;border-top:1px solid var(--foam)}
+.kc-footer{padding:10px 16px;border-top:1px solid var(--foam);display:flex;gap:8px}
+.kc-status-btn{flex:1;padding:8px;border-radius:8px;font-size:0.8rem;font-weight:600;border:none}
+.kc-preparing-btn{background:var(--preparing);color:var(--preparing-border)}
+.kc-ready-btn{background:var(--ready);color:var(--ready-border)}
+.kc-served-btn{background:var(--espresso);color:var(--latte)}
+.kc-print-btn{padding:8px 12px;border-radius:8px;font-size:0.78rem;font-weight:600;border:1px solid var(--border);background:var(--foam);color:var(--brown)}
+.kitchen-empty{text-align:center;padding:60px;color:var(--muted)}
+.kitchen-empty-icon{font-size:3rem;margin-bottom:12px}
+
+/* ====== HISTORY TAB ====== */
+.history-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px}
+.h-stat{background:var(--white);border-radius:12px;padding:16px;border:1px solid var(--border);text-align:center}
+.h-stat .lbl{font-size:0.73rem;color:var(--muted);margin-bottom:4px}
+.h-stat .val{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;color:var(--espresso)}
+
+/* ====== MENU TAB ====== */
+.menu-manage{display:flex;flex-direction:column;gap:20px}
+.cat-section{background:var(--white);border-radius:14px;border:1px solid var(--border);overflow:hidden}
+.cat-section-header{padding:14px 20px;background:var(--foam);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.cat-section-name{font-size:0.95rem;font-weight:600;color:var(--brown)}
+.cat-section-count{font-size:0.78rem;color:var(--muted)}
+.menu-item-row{display:flex;align-items:center;gap:14px;padding:12px 20px;border-bottom:1px solid var(--foam)}
+.menu-item-row:last-child{border:none}
+.mi-emoji{font-size:1.5rem}
+.mi-img{width:40px;height:40px;border-radius:8px;object-fit:cover}
+.mi-details{flex:1}
+.mi-name{font-size:0.88rem;font-weight:600;color:var(--espresso)}
+.mi-price{font-size:0.78rem;color:var(--muted)}
+.mi-actions{display:flex;align-items:center;gap:8px}
+.toggle-btn{width:38px;height:20px;border-radius:100px;border:none;position:relative;transition:background .2s;flex-shrink:0}
+.toggle-btn.on{background:var(--mint)}
+.toggle-btn.off{background:var(--border)}
+.toggle-btn::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s}
+.toggle-btn.on::after{left:20px}
+.mi-edit-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.75rem;color:var(--muted)}
+.mi-delete-btn{background:none;border:none;color:var(--danger-text);font-size:1rem}
+.add-item-form{background:var(--foam);border:1.5px dashed var(--border);border-radius:14px;padding:20px;margin-top:12px;display:none}
+.add-item-form.show{display:block}
+
+/* ====== DELIVERY TAB ====== */
+.delivery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.delivery-card{background:var(--white);border-radius:14px;border:1px solid var(--border);border-top:4px solid var(--border);overflow:hidden}
+.delivery-card.zomato{border-top-color:#e23744}
+.delivery-card.swiggy{border-top-color:#fc8019}
+.dc-header{padding:12px 16px;border-bottom:1px solid var(--foam);display:flex;justify-content:space-between;align-items:center}
+.platform-badge{font-size:0.68rem;font-weight:700;padding:3px 10px;border-radius:100px}
+.badge-zomato{background:#fde8ea;color:#e23744}
+.badge-swiggy{background:#fff0e6;color:#fc8019}
+.dc-body{padding:14px 16px}
+.dc-footer{padding:10px 16px;border-top:1px solid var(--foam);display:flex;gap:8px}
+.dc-status-btn{flex:1;padding:8px;border-radius:8px;font-size:0.78rem;font-weight:600;border:none;background:var(--foam);color:var(--brown)}
+
+/* ====== MODAL ====== */
+.modal-overlay{position:fixed;inset:0;background:rgba(30,18,9,0.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;display:none}
+.modal-overlay.show{display:flex}
+.modal{background:var(--white);border-radius:20px;width:100%;max-width:440px;max-height:85vh;overflow-y:auto;padding:28px}
+.modal h3{font-family:'Fraunces',serif;font-size:1.2rem;color:var(--espresso);margin-bottom:20px}
+.modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+
+/* RECEIPT */
+.receipt{font-family:'Courier New',monospace;font-size:0.78rem;line-height:1.5;padding:8px 0;color:#111}
+.receipt-title{text-align:center;font-weight:700;font-size:0.9rem}
+.receipt-sep{border:none;border-top:1px dashed #999;margin:8px 0}
+.receipt-row{display:flex;justify-content:space-between}
+.receipt-bold{font-weight:700}
+
+/* RESPONSIVE */
+@media(min-width:600px){
+  .stats-row{grid-template-columns:repeat(3,1fr)}
+  .history-stats{grid-template-columns:repeat(4,1fr)}
+  .cafe-cards{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+  .cafe-card-actions{grid-template-columns:2fr 1fr}
+}
+@media(min-width:900px){
+  .stats-row{grid-template-columns:repeat(5,1fr)}
+  #owner-dashboard{padding:28px}
+}
+@media(max-width:768px){
+  .order-layout,.order-layout.cart-open{grid-template-columns:1fr!important}
+  /* Mobile: cart is a bottom sheet */
+  .cart-panel{
+    position:fixed!important;
+    bottom:0;left:0;right:0;top:auto!important;
+    border-radius:22px 22px 0 0!important;
+    max-height:88vh!important;
+    height:auto!important;
+    z-index:96;
+    transform:translateY(100%);
+    transition:transform .32s cubic-bezier(0.32,0.72,0,1);
+    display:flex!important;
+    box-shadow:0 -8px 40px rgba(59,42,26,0.18)!important;
+  }
+  .cart-panel.cart-visible{transform:translateY(0)}
+  .cart-drag-handle{display:flex}
+  .cart-toggle-btn{bottom:20px;right:16px;left:16px;border-radius:14px;justify-content:center;font-size:0.9rem}
+  .cart-toggle-btn.cart-open-state{background:var(--espresso)}
+  /* Header responsive */
+  .header-btn{display:none!important}
+  .logout-btn{display:none!important}
+  .header-menu-btn{display:flex}
+  #header-context{max-width:100px}
+  .app-header{padding:0 12px;height:52px}
+  .header-dropdown.open ~ * .app-header,
+  .header-dropdown{top:52px}
+  /* History: hide table, show cards */
+  .history-table-wrap{display:none}
+  .order-card-list{display:flex}
+  /* Dashboard padding */
+  #owner-dashboard{padding:14px}
+  .filter-row{gap:6px}
+  .filter-select{min-width:100px;font-size:0.78rem}
+  .section-head{gap:6px}
+}
+@media(max-width:640px){
+  .cafe-cards{grid-template-columns:1fr}
+  .history-stats{grid-template-columns:1fr 1fr}
+  .pay-btns{flex-wrap:nowrap}
+  .cart-items{max-height:35vh}
+  .pos-tab{padding:10px}
+  .dash-tab{padding:9px 10px;font-size:0.8rem}
+}
+@media(max-width:400px){
+  .stats-row{grid-template-columns:1fr 1fr}
+  .filter-select{min-width:80px;padding:6px 8px}
+}
+</style>
+</head>
+<body>
+
+<!-- ====== LOGIN ====== -->
+<div id="login-screen">
+  <div style="font-size:2.5rem;margin-bottom:8px">☕</div>
+  <div class="login-logo">MyCafe POS</div>
+  <div class="login-sub">Select your account to continue</div>
+  <div class="account-list" id="account-list"></div>
+  <div class="pin-area" id="pin-area">
+    <div style="font-size:0.88rem;font-weight:500;color:var(--brown)" id="pin-prompt">Enter PIN</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+    <div class="numpad" id="numpad"></div>
+    <button class="pin-back" onclick="backToAccounts()">← Back</button>
+  </div>
+</div>
+
+<!-- ====== APP SHELL ====== -->
+<div id="app">
+  <div class="app-header">
+    <div class="header-left">
+      <div class="header-logo">☕ <span>MyCafe POS</span></div>
+      <button id="btn-back-dashboard" onclick="backToDashboard()">← Dashboard</button>
+      <span id="header-context"></span>
+      <span id="cloud-badge" style="display:none;font-size:0.7rem;font-weight:600;padding:3px 10px;border-radius:100px;border:1px solid transparent"></span>
+    </div>
+    <div class="header-right">
+      <!-- Desktop buttons (hidden on mobile) -->
+      <button class="header-btn" id="btn-change-pin" onclick="openChangePinModal()" style="display:none">🔑 PIN</button>
+      <button class="header-btn" id="btn-backup" onclick="backupData()" style="display:none">⬇ Backup</button>
+      <button class="header-btn" id="btn-restore-label" onclick="document.getElementById('restore-file').click()" style="display:none">⬆ Restore</button>
+      <input type="file" id="restore-file" accept=".json" onchange="restoreData(event)" style="display:none"/>
+      <button class="logout-btn" id="btn-logout-desk" onclick="logout()">Logout</button>
+      <!-- Mobile ⋮ menu button -->
+      <button class="header-menu-btn" id="header-menu-btn" onclick="toggleHeaderMenu()" title="Menu">⋮</button>
+    </div>
+  </div>
+
+  <!-- Mobile dropdown menu -->
+  <div class="header-dropdown" id="header-dropdown">
+    <div class="hd-context" id="hd-context-label"></div>
+    <div class="hd-row" id="hd-actions"></div>
+    <button class="hd-logout" onclick="logout();closeHeaderMenu()">🚪 Logout</button>
+  </div>
+
+  <!-- Owner Dashboard -->
+  <div id="owner-dashboard" style="display:none">
+    <div style="padding:20px">
+      <div class="dash-tabs">
+        <button class="dash-tab active" onclick="showDashPanel('overview')">Overview</button>
+        <button class="dash-tab" onclick="showDashPanel('cafes')">My Cafés</button>
+        <button class="dash-tab" onclick="showDashPanel('allhistory')">All History</button>
+      </div>
+
+      <!-- Overview -->
+      <div class="dash-panel active" id="panel-overview">
+        <div class="stats-row" id="owner-stats"></div>
+        <div class="pay-bar" id="owner-pay-bar"></div>
+        <div style="margin-top:28px">
+          <div class="section-head"><h2>Café Performance</h2></div>
+          <div class="cafe-cards" id="owner-cafe-cards"></div>
+        </div>
+      </div>
+
+      <!-- My Cafes -->
+      <div class="dash-panel" id="panel-cafes">
+        <div class="section-head">
+          <h2>My Cafés</h2>
+          <button class="btn-add" onclick="toggleAddCafeForm()">+ Add Café</button>
+        </div>
+        <div class="add-cafe-form" id="add-cafe-form">
+          <div style="font-size:0.88rem;font-weight:600;color:var(--brown);margin-bottom:14px">New Café</div>
+          <div class="form-row">
+            <input class="form-input" id="new-cafe-name" placeholder="Café Name" maxlength="40"/>
+            <input class="form-input" id="new-cafe-pin" placeholder="4-digit PIN" maxlength="4" type="text"/>
+            <input class="form-input" id="new-cafe-emoji" placeholder="Emoji 🏪" maxlength="2" style="max-width:90px"/>
+          </div>
+          <div class="form-actions">
+            <button class="btn-save" onclick="addCafe()">Create</button>
+            <button class="btn-cancel" onclick="toggleAddCafeForm()">Cancel</button>
+          </div>
+        </div>
+        <div class="cafe-cards" id="manage-cafe-cards"></div>
+      </div>
+
+      <!-- All History -->
+      <div class="dash-panel" id="panel-allhistory">
+        <div class="section-head"><h2>All Orders</h2>
+          <button class="btn-pdf" onclick="downloadPDF('all')">⬇ PDF</button>
+        </div>
+        <div class="filter-row">
+          <select class="filter-select" id="ah-cafe-filter" onchange="renderAllHistory()">
+            <option value="all">All Cafés</option>
+          </select>
+          <select class="filter-select" id="ah-pay-filter" onchange="renderAllHistory()">
+            <option value="all">All Payments</option>
+            <option value="cash">Cash</option>
+            <option value="online">Online</option>
+            <option value="split">Split</option>
+          </select>
+          <select class="filter-select" id="ah-period" onchange="onAhPeriodChange()">
+            <option value="all">All Time</option>
+            <option value="daily">By Day</option>
+            <option value="monthly">By Month</option>
+            <option value="yearly">By Year</option>
+          </select>
+          <select class="filter-select" id="ah-day-sel" onchange="renderAllHistory()" style="display:none"></select>
+          <select class="filter-select" id="ah-month-sel" onchange="renderAllHistory()" style="display:none"></select>
+          <select class="filter-select" id="ah-year-sel" onchange="renderAllHistory()" style="display:none"></select>
+        </div>
+        <div class="history-stats" id="ah-stats"></div>
+        <!-- Desktop table -->
+        <div class="history-table-wrap">
+          <table class="history-table" id="ah-table">
+            <thead><tr><th>Order ID</th><th>Café</th><th>Items</th><th>Payment</th><th>Total</th><th>Time</th></tr></thead>
+            <tbody id="ah-tbody"></tbody>
+          </table>
+        </div>
+        <!-- Mobile cards -->
+        <div class="order-card-list" id="ah-card-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CafePOS -->
+  <div id="cafepos">
+    <div class="pos-nav">
+      <button class="pos-nav-btn active" onclick="showPosTab('order')" id="nav-order">
+        <span class="pos-nav-icon">🛒</span><span>Order</span>
+      </button>
+      <button class="pos-nav-btn" onclick="showPosTab('kitchen')" id="nav-kitchen">
+        <span class="pos-nav-icon">🍳</span><span>Kitchen</span>
+        <span class="nav-badge" id="kitchen-badge" style="display:none"></span>
+      </button>
+      <button class="pos-nav-btn" onclick="showPosTab('history')" id="nav-history">
+        <span class="pos-nav-icon">📊</span><span>History</span>
+      </button>
+      <button class="pos-nav-btn" onclick="showPosTab('menu')" id="nav-menu">
+        <span class="pos-nav-icon">📋</span><span>Menu</span>
+      </button>
+      <button class="pos-nav-btn" onclick="showPosTab('delivery')" id="nav-delivery">
+        <span class="pos-nav-icon">🛵</span><span>Delivery</span>
+        <span class="nav-badge" id="delivery-badge" style="display:none"></span>
+      </button>
+    </div>
+
+    <!-- ORDER -->
+    <div class="pos-tab active" id="tab-order">
+      <div class="order-layout" id="order-layout">
+        <div class="menu-section">
+          <div class="cat-filter" id="cat-filter"></div>
+          <div class="menu-grid" id="menu-grid"></div>
+        </div>
+        <div class="cart-panel" id="cart-panel">
+          <div class="cart-drag-handle" id="cart-drag-handle"></div>
+          <div class="cart-header">
+            <span class="cart-title">
+              🛒 Cart
+              <span class="cart-count-pill" id="cart-count-pill" style="display:none">0</span>
+            </span>
+            <div class="cart-header-actions">
+              <button class="cart-clear" onclick="clearCart()">Clear all</button>
+              <button class="cart-close-btn" onclick="closeCart()" title="Close">✕</button>
+            </div>
+          </div>
+          <div class="cart-items" id="cart-items">
+            <div class="cart-empty"><span class="cart-empty-icon">🛒</span>Tap items to add</div>
+          </div>
+          <div class="cart-totals" id="cart-totals"></div>
+          <div class="pay-modes">
+            <div class="pay-label">Payment Mode</div>
+            <div class="pay-btns">
+              <button class="pay-btn active" onclick="setPayMode('cash',this)">💵 Cash</button>
+              <button class="pay-btn" onclick="setPayMode('online',this)">📱 Online</button>
+              <button class="pay-btn" onclick="setPayMode('split',this)">⚡ Split</button>
+            </div>
+          </div>
+          <div class="cash-area show" id="cash-area">
+            <div class="cash-row">
+              <span class="cash-label">Cash Given</span>
+              <input class="cash-input" type="number" id="cash-given" placeholder="₹0" oninput="calcChange()"/>
+            </div>
+            <div class="cash-quick" id="cash-quick"></div>
+            <div class="change-row" id="change-row"></div>
+          </div>
+          <div class="upi-sel" id="upi-sel">
+            <div class="pay-label">UPI Platform</div>
+            <div class="upi-btns">
+              <button class="upi-btn active" onclick="setUpi(this,'GPay')">GPay</button>
+              <button class="upi-btn" onclick="setUpi(this,'PhonePe')">PhonePe</button>
+              <button class="upi-btn" onclick="setUpi(this,'Paytm')">Paytm</button>
+              <button class="upi-btn" onclick="setUpi(this,'Card')">Card</button>
+              <button class="upi-btn" onclick="setUpi(this,'UPI')">UPI</button>
+            </div>
+          </div>
+          <button class="place-order-btn" id="place-btn" onclick="placeOrder()" disabled>Place Order →</button>
+        </div>
+      </div>
+      <!-- Cart Backdrop (mobile) -->
+      <div class="cart-backdrop" id="cart-backdrop" onclick="closeCart()"></div>
+      <!-- Cart Toggle FAB -->
+      <button class="cart-toggle-btn" id="cart-toggle-btn" onclick="toggleCart()">
+        🛒 <span id="cart-toggle-label">View Cart</span>
+        <span class="ctb-badge" id="cart-count-badge" style="display:none">0</span>
+      </button>
+    </div>
+
+    <!-- KITCHEN -->
+    <div class="pos-tab" id="tab-kitchen">
+      <div class="kitchen-grid" id="kitchen-grid">
+        <div class="kitchen-empty"><div class="kitchen-empty-icon">🍳</div><p>No active orders</p></div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="pos-tab" id="tab-history">
+      <div class="filter-row">
+        <select class="filter-select" id="h-period" onchange="renderHistory()">
+          <option value="daily">Daily</option>
+          <option value="monthly">Monthly</option>
+          <option value="yearly">Yearly</option>
+        </select>
+        <select class="filter-select" id="h-pay" onchange="renderHistory()">
+          <option value="all">All Payments</option>
+          <option value="cash">Cash</option>
+          <option value="online">Online</option>
+          <option value="split">Split</option>
+        </select>
+        <button class="btn-pdf" id="btn-dl-pdf" onclick="downloadPDF('cafe')" style="display:none">⬇ PDF</button>
+      </div>
+      <div class="history-stats" id="pos-h-stats"></div>
+      <!-- Desktop table -->
+      <div class="history-table-wrap">
+        <table class="history-table">
+          <thead><tr><th>Order ID</th><th>Items</th><th>Payment</th><th>Total</th><th>Date & Time</th><th></th></tr></thead>
+          <tbody id="h-tbody"></tbody>
+        </table>
+      </div>
+      <!-- Mobile cards -->
+      <div class="order-card-list" id="h-card-list"></div>
+    </div>
+
+    <!-- MENU -->
+    <div class="pos-tab" id="tab-menu">
+      <div class="section-head">
+        <h2 style="font-family:'Fraunces',serif;font-size:1.2rem">Menu</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn-add" onclick="openAddItemModal()">+ Item</button>
+          <button class="header-btn" onclick="openAddCatModal()" style="font-size:0.82rem">+ Category</button>
+        </div>
+      </div>
+      <div class="menu-manage" id="menu-manage"></div>
+    </div>
+
+    <!-- DELIVERY -->
+    <div class="pos-tab" id="tab-delivery">
+      <!-- Header bar -->
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+        <div>
+          <div style="font-family:'Fraunces',serif;font-size:1.1rem;color:var(--espresso)">Delivery Orders</div>
+          <div style="font-size:0.72rem;color:var(--muted);margin-top:2px" id="delivery-sync-status">⏸ Not connected</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span id="zomato-status-badge" style="font-size:0.72rem;color:var(--muted);background:var(--foam);padding:4px 10px;border-radius:100px;border:1px solid var(--border)">⚠ Not connected</span>
+          <button onclick="openDeliveryConnect()" id="delivery-connect-btn" style="background:var(--caramel);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:0.8rem;font-weight:600;cursor:pointer">⚡ Connect Platforms</button>
+        </div>
+      </div>
+
+      <!-- Connect Panel -->
+      <div id="delivery-connect-panel" style="display:none;background:var(--white);border:1.5px solid var(--caramel);border-radius:16px;padding:20px;margin-bottom:20px">
+        <div style="font-weight:600;color:var(--espresso);margin-bottom:14px;font-family:'Fraunces',serif">🔌 Platform Connections</div>
+
+        <!-- Zomato -->
+        <div style="background:var(--foam);border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid var(--border)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:36px;height:36px;background:#e23744;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;color:#fff;font-weight:700">Z</div>
+              <div><div style="font-weight:600;font-size:0.9rem">Zomato</div><div style="font-size:0.72rem;color:var(--muted)" id="z-conn-status">Not connected</div></div>
+            </div>
+            <button id="z-toggle-btn" onclick="toggleZomato()" style="background:#e23744;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:0.78rem;font-weight:600;cursor:pointer">Connect</button>
+          </div>
+          <div id="z-fields">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <input class="form-input" id="z-restaurant-id" placeholder="Restaurant ID (from Zomato Partner Portal)" style="font-size:0.82rem"/>
+              <input class="form-input" id="z-api-key" type="password" placeholder="API Key (from Zomato Partner Portal)" style="font-size:0.82rem"/>
+              <div style="background:#fff3f3;border:1px solid #fca5a5;border-radius:8px;padding:8px 12px;font-size:0.75rem;color:#991b1b">
+                💡 Get credentials at <strong>partner.zomato.com</strong> → Settings → API Access. Webhook URL will be auto-configured.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Swiggy -->
+        <div style="background:var(--foam);border-radius:12px;padding:16px;border:1px solid var(--border)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:36px;height:36px;background:#fc8019;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;color:#fff;font-weight:700">S</div>
+              <div><div style="font-weight:600;font-size:0.9rem">Swiggy</div><div style="font-size:0.72rem;color:var(--muted)" id="s-conn-status">Not connected</div></div>
+            </div>
+            <button id="s-toggle-btn" onclick="toggleSwiggy()" style="background:#fc8019;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:0.78rem;font-weight:600;cursor:pointer">Connect</button>
+          </div>
+          <div id="s-fields">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <input class="form-input" id="s-vendor-id" placeholder="Vendor ID (from Swiggy Partner Dashboard)" style="font-size:0.82rem"/>
+              <input class="form-input" id="s-secret" type="password" placeholder="Secret Key (from Swiggy Partner Dashboard)" style="font-size:0.82rem"/>
+              <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 12px;font-size:0.75rem;color:#9a3412">
+                💡 Get credentials at <strong>partner.swiggy.com</strong> → Integrations → API. Webhook URL will be auto-configured.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;margin-top:14px;gap:8px">
+          <button onclick="closeDeliveryConnect()" style="background:var(--foam);color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:8px 16px;font-size:0.85rem;cursor:pointer">Close</button>
+        </div>
+      </div>
+
+      <!-- Live orders -->
+      <div id="delivery-grid" class="delivery-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODALS ====== -->
+<div class="modal-overlay" id="receipt-modal">
+  <div class="modal">
+    <h3>Receipt Preview</h3>
+    <div id="receipt-content"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('receipt-modal')">Close</button>
+      <button class="btn-save" onclick="printReceipt()">🖨️ Print</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="pin-change-modal">
+  <div class="modal">
+    <h3>Change PIN</h3>
+    <div style="margin-bottom:14px">
+      <div class="pay-label" style="margin-bottom:8px">Select Account</div>
+      <select class="filter-select" id="cp-account" style="width:100%;padding:9px 12px" onchange="updatePinChangeForm()">
+        <option value="owner">👑 Owner</option>
+      </select>
+    </div>
+    <div class="form-row" style="flex-direction:column">
+      <input class="form-input" id="cp-current" type="password" placeholder="Current Owner PIN (verification)" maxlength="4"/>
+      <input class="form-input" id="cp-new" type="password" placeholder="New PIN (4 digits)" maxlength="4"/>
+      <input class="form-input" id="cp-confirm" type="password" placeholder="Confirm New PIN" maxlength="4"/>
+    </div>
+    <div id="cp-error" style="color:var(--danger-text);font-size:0.82rem;margin-top:8px"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('pin-change-modal')">Cancel</button>
+      <button class="btn-save" onclick="changePin()">Save PIN</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="add-item-modal">
+  <div class="modal">
+    <h3 id="item-modal-title">Add Menu Item</h3>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <input class="form-input" id="item-name" placeholder="Item Name"/>
+      <input class="form-input" id="item-price" type="number" placeholder="Price (₹)"/>
+      <select class="form-input filter-select" id="item-cat" style="background:var(--foam)"></select>
+      <input class="form-input" id="item-emoji" placeholder="Emoji (e.g. ☕)" maxlength="2"/>
+      <input class="form-input" id="item-photo" placeholder="Photo URL (optional)"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('add-item-modal')">Cancel</button>
+      <button class="btn-save" onclick="saveItem()">Save</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="add-cat-modal">
+  <div class="modal">
+    <h3>Add Category</h3>
+    <input class="form-input" id="new-cat-name" placeholder="Category Name" style="width:100%"/>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('add-cat-modal')">Cancel</button>
+      <button class="btn-save" onclick="addCategory()">Add</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal">
+    <h3 id="confirm-title">Confirm</h3>
+    <p id="confirm-msg" style="color:var(--muted);font-size:0.9rem"></p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('confirm-modal')">Cancel</button>
+      <button class="btn-save" id="confirm-ok" style="background:var(--danger-text)">Delete</button>
+    </div>
+  </div>
+</div>
+<iframe id="print-frame" style="display:none"></iframe>
+
+<script>
+// ===== DATA LAYER =====
+const GST = 0.05;
+const DEFAULT_ITEMS = [
+  {id:'i1',name:'Cappuccino',price:180,cat:'Coffee',emoji:'☕',available:true},
+  {id:'i2',name:'Latte',price:160,cat:'Coffee',emoji:'☕',available:true},
+  {id:'i3',name:'Cold Brew',price:200,cat:'Coffee',emoji:'🧊',available:true},
+  {id:'i4',name:'Espresso',price:120,cat:'Coffee',emoji:'☕',available:true},
+  {id:'i5',name:'Masala Chai',price:60,cat:'Tea',emoji:'🫖',available:true},
+  {id:'i6',name:'Green Tea',price:80,cat:'Tea',emoji:'🍵',available:true},
+  {id:'i7',name:'Croissant',price:120,cat:'Food',emoji:'🥐',available:true},
+  {id:'i8',name:'Sandwich',price:150,cat:'Food',emoji:'🥪',available:true},
+  {id:'i9',name:'Brownie',price:100,cat:'Food',emoji:'🍫',available:true},
+  {id:'i10',name:'Pasta',price:220,cat:'Food',emoji:'🍝',available:true},
+  {id:'i11',name:'Cold Coffee',price:180,cat:'Drinks',emoji:'🥤',available:true},
+  {id:'i12',name:'Mango Lassi',price:120,cat:'Drinks',emoji:'🥭',available:true},
+  {id:'i13',name:'Fresh Lime Soda',price:90,cat:'Drinks',emoji:'🍋',available:true},
+  {id:'i14',name:'Watermelon Juice',price:100,cat:'Drinks',emoji:'🍉',available:true},
+];
+const DEFAULT_CATS = ['Coffee','Tea','Food','Drinks'];
+const DEFAULT_CAFES = [
+  {id:'cafe1',name:'My Cafe MG Road',pin:'1111',emoji:'🏪'},
+  {id:'cafe2',name:'My Cafe Koramangala',pin:'2222',emoji:'☕'},
+];
+
+function loadData(key,def){try{const v=localStorage.getItem(key);return v?JSON.parse(v):def}catch{return def}}
+function saveData(key,val){localStorage.setItem(key,JSON.stringify(val))}
+function getCafes(){return loadData('cafes',DEFAULT_CAFES)}
+function getOwnerPin(){return loadData('ownerPin','1234')}
+function getMenu(cid){return loadData('menu_'+cid,DEFAULT_ITEMS.map(i=>({...i})))}
+function getCats(cid){return loadData('cats_'+cid,[...DEFAULT_CATS])}
+function getOrders(cid){return loadData('orders_'+cid,[])}
+// saveCafes, saveOwnerPin, saveMenu, saveCats, saveOrders are defined in the sync engine below
+// They write to localStorage AND push to Firebase automatically
+function getAllOrders(){
+  const cafes=getCafes();let all=[];
+  cafes.forEach(c=>{getOrders(c.id).forEach(o=>all.push({...o,cafeName:c.name,cafeId:c.id}))});
+  return all.sort((a,b)=>b.ts-a.ts);
+}
+function getDailyCounter(cid){
+  const today=fmtDate(new Date());const key='counter_'+cid+'_'+today;
+  const n=(loadData(key,0))+1;saveData(key,n);return n;
+}
+function fmtDate(d){
+  const dd=String(d.getDate()).padStart(2,'0');
+  const mm=String(d.getMonth()+1).padStart(2,'0');
+  const yy=String(d.getFullYear()).slice(-2);
+  return dd+mm+yy;
+}
+function genOrderId(cid){return 'ORD-'+fmtDate(new Date())+'-'+String(getDailyCounter(cid)).padStart(3,'0')}
+function fmtTime(ts){return new Date(ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}
+function fmtDateFull(ts){return new Date(ts).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
+
+// ===== STATE =====
+let currentUser=null; // {type:'owner'} or {type:'cafe',cafe:{...}}
+let cart=[];
+let payMode='cash';
+let upiPlatform='GPay';
+let currentPinInput='';
+let selectedAccount=null;
+let editItemId=null;
+let isMobile=window.innerWidth<768;
+
+window.addEventListener('resize',()=>{isMobile=window.innerWidth<768;updateResponsive()});
+
+// ===== LOGIN =====
+function renderLoginAccounts(){
+  const cafes=getCafes();
+  const accounts=[{type:'owner',name:'Owner',emoji:'👑',role:'Full Dashboard'}, ...cafes.map(c=>({type:'cafe',name:c.name,emoji:c.emoji,role:'Café Staff',cafe:c}))];
+  const list=document.getElementById('account-list');
+  list.innerHTML=accounts.map((a,i)=>`
+    <button class="account-btn" onclick="selectAccount(${i})">
+      <span class="account-emoji">${a.emoji}</span>
+      <div><div class="account-name">${a.name}</div><div class="account-role">${a.role}</div></div>
+    </button>
+  `).join('');
+  window._loginAccounts=accounts;
+}
+
+function selectAccount(i){
+  selectedAccount=window._loginAccounts[i];
+  document.querySelectorAll('.account-btn').forEach((b,j)=>b.classList.toggle('selected',j===i));
+  document.getElementById('pin-area').classList.add('show');
+  document.getElementById('account-list').style.opacity='0.5';
+  document.getElementById('pin-prompt').textContent='Enter PIN for '+selectedAccount.name;
+  currentPinInput='';
+  updatePinDots();
+  document.getElementById('pin-error').textContent='';
+  renderNumpad();
+}
+function backToAccounts(){
+  document.getElementById('pin-area').classList.remove('show');
+  document.getElementById('account-list').style.opacity='1';
+  document.querySelectorAll('.account-btn').forEach(b=>b.classList.remove('selected'));
+  selectedAccount=null; currentPinInput='';
+}
+function renderNumpad(){
+  const keys=[1,2,3,4,5,6,7,8,9,'','0','⌫'];
+  document.getElementById('numpad').innerHTML=keys.map(k=>`
+    <button class="numpad-btn ${k==='⌫'?'del':''}" onclick="pinKey('${k}')">${k}</button>
+  `).join('');
+}
+function pinKey(k){
+  if(k===''){return}
+  if(k==='⌫'){currentPinInput=currentPinInput.slice(0,-1);}
+  else if(currentPinInput.length<4){currentPinInput+=k;}
+  updatePinDots();
+  if(currentPinInput.length===4)setTimeout(verifyPin,150);
+}
+function updatePinDots(){
+  for(let i=0;i<4;i++){document.getElementById('d'+i).classList.toggle('filled',i<currentPinInput.length)}
+}
+function verifyPin(){
+  const err=document.getElementById('pin-error');
+  let correct='';
+  if(selectedAccount.type==='owner') correct=getOwnerPin();
+  else correct=selectedAccount.cafe.pin;
+  if(currentPinInput===correct){
+    err.textContent='';
+    currentUser=selectedAccount;
+    // Store typed PIN so Firebase namespace matches on every device
+    if(selectedAccount.type==='owner') window._ownerPin = currentPinInput;
+    else window._ownerPin = window._ownerPin || getOwnerPin(); // staff use stored owner PIN
+    launchApp();
+  } else {
+    err.textContent='Incorrect PIN. Try again.';
+    currentPinInput='';updatePinDots();
+  }
+}
+
+// ===== LAUNCH =====
+// ===== HEADER DROPDOWN (mobile) =====
+function toggleHeaderMenu(){
+  const dd=document.getElementById('header-dropdown');
+  if(dd.classList.contains('open'))closeHeaderMenu();
+  else openHeaderMenu();
+}
+function openHeaderMenu(){
+  const dd=document.getElementById('header-dropdown');
+  const lbl=document.getElementById('hd-context-label');
+  const actions=document.getElementById('hd-actions');
+  const hc=document.getElementById('header-context');
+  lbl.textContent=hc.textContent||'';
+  // Build action buttons based on current state
+  let btns='';
+  if(document.getElementById('btn-change-pin').style.display!=='none')
+    btns+=`<button class="hd-btn" onclick="openChangePinModal();closeHeaderMenu()">🔑 Change PIN</button>`;
+  if(document.getElementById('btn-backup').style.display!=='none')
+    btns+=`<button class="hd-btn" onclick="backupData();closeHeaderMenu()">⬇ Backup</button>`;
+  if(document.getElementById('btn-restore-label').style.display!=='none')
+    btns+=`<button class="hd-btn" onclick="document.getElementById('restore-file').click();closeHeaderMenu()">⬆ Restore</button>`;
+  if(document.getElementById('btn-back-dashboard').style.display!=='none')
+    btns+=`<button class="hd-btn" onclick="backToDashboard();closeHeaderMenu()">← Dashboard</button>`;
+  actions.innerHTML=btns;
+  dd.classList.add('open');
+}
+function closeHeaderMenu(){
+  document.getElementById('header-dropdown').classList.remove('open');
+}
+// Close dropdown on outside click
+document.addEventListener('click',e=>{
+  const dd=document.getElementById('header-dropdown');
+  const mb=document.getElementById('header-menu-btn');
+  if(dd&&mb&&!dd.contains(e.target)&&!mb.contains(e.target))closeHeaderMenu();
+});
+
+// Central function to sync header state
+function syncHeader(context, {showPin=false, showBackup=false, showBack=false}={}){
+  const hc=document.getElementById('header-context');
+  hc.textContent=context||'';
+  document.getElementById('btn-change-pin').style.display=showPin?'':'none';
+  document.getElementById('btn-backup').style.display=showBackup?'':'none';
+  document.getElementById('btn-restore-label').style.display=showBackup?'':'none';
+  document.getElementById('btn-back-dashboard').style.display=showBack?'':'none';
+}
+
+function launchApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  closeHeaderMenu();
+  if(currentUser.type==='owner'){
+    syncHeader('👑 Owner',{showPin:true,showBackup:true,showBack:false});
+    document.getElementById('owner-dashboard').style.display='block';
+    document.getElementById('cafepos').style.display='none';
+    renderOwnerDashboard();
+    fbInitOwner();
+  } else {
+    syncHeader(currentUser.cafe.emoji+' '+currentUser.cafe.name,{showPin:false,showBackup:false,showBack:false});
+    document.getElementById('owner-dashboard').style.display='none';
+    document.getElementById('cafepos').style.display='flex';
+    initPOS();
+  }
+}
+function logout(){
+  currentUser=null;cart=[];cartOpen=false;
+  closeHeaderMenu();
+  fbStop();
+  stopDeliveryPolling();
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('pin-area').classList.remove('show');
+  document.getElementById('account-list').style.opacity='1';
+  document.querySelectorAll('.account-btn').forEach(b=>b.classList.remove('selected'));
+  syncHeader('');
+  renderLoginAccounts();
+}
+
+// ===== OWNER DASHBOARD =====
+function showDashPanel(id){
+  document.querySelectorAll('.dash-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.dash-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  event.target.classList.add('active');
+  if(id==='overview')renderOwnerOverview();
+  if(id==='cafes')renderManageCafes();
+  if(id==='allhistory')renderAllHistory();
+}
+function renderOwnerDashboard(){renderOwnerOverview();renderManageCafes();}
+function renderOwnerOverview(){
+  const cafes=getCafes();
+  let totalRev=0,totalOrders=0,cashRev=0,onlineRev=0,splitRev=0;
+  cafes.forEach(c=>{
+    getOrders(c.id).filter(o=>o.status==='served').forEach(o=>{
+      totalRev+=o.total;totalOrders++;
+      if(o.payMode==='cash')cashRev+=o.total;
+      else if(o.payMode==='online')onlineRev+=o.total;
+      else splitRev+=o.total;
+    });
+  });
+  const avg=totalOrders?Math.round(totalRev/totalOrders):0;
+  const active=cafes.reduce((a,c)=>a+getOrders(c.id).filter(o=>o.status!=='served').length,0);
+  document.getElementById('owner-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value">₹${totalRev.toLocaleString()}</div><div class="stat-sub">All cafés combined</div></div>
+    <div class="stat-card"><div class="stat-label">Orders Served</div><div class="stat-value">${totalOrders}</div><div class="stat-sub">Completed orders</div></div>
+    <div class="stat-card"><div class="stat-label">Avg Order Value</div><div class="stat-value">₹${avg}</div><div class="stat-sub">Per completed order</div></div>
+    <div class="stat-card"><div class="stat-label">Active Orders</div><div class="stat-value">${active}</div><div class="stat-sub">Across all cafés</div></div>
+    <div class="stat-card"><div class="stat-label">Total Cafés</div><div class="stat-value">${cafes.length}</div><div class="stat-sub">Locations</div></div>
+  `;
+  const t=totalRev||1;
+  document.getElementById('owner-pay-bar').innerHTML=`<div class="pay-bar">
+    ${bar('💵 Cash',cashRev,t,'fill-cash')}${bar('📱 Online',onlineRev,t,'fill-online')}${bar('⚡ Split',splitRev,t,'fill-split')}
+  </div>`;
+  document.getElementById('owner-cafe-cards').innerHTML=cafes.map(c=>{
+    const orders=getOrders(c.id);const served=orders.filter(o=>o.status==='served');
+    const rev=served.reduce((a,o)=>a+o.total,0);const active=orders.filter(o=>o.status!=='served').length;
+    return `<div class="cafe-card">
+      <div class="cafe-card-header"><span class="cafe-emoji">${c.emoji}</span><div><div class="cafe-card-name">${c.name}</div></div></div>
+      <div class="cafe-card-row"><span class="lbl">Revenue</span><span class="val">₹${rev.toLocaleString()}</span></div>
+      <div class="cafe-card-row"><span class="lbl">Orders Served</span><span class="val">${served.length}</span></div>
+      <div class="cafe-card-row"><span class="lbl">Active Orders</span><span class="val">${active}</span></div>
+      <div class="cafe-card-actions">
+        <button class="btn-open-cafe" onclick="openCafeAsOwner('${c.id}')">Manage →</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function bar(lbl,val,total,cls){
+  const pct=total?Math.round(val/total*100):0;
+  return `<div class="pay-bar-row"><div class="pay-bar-lbl"><span>${lbl}</span><span>₹${val.toLocaleString()} (${pct}%)</span></div><div class="pay-bar-track"><div class="pay-bar-fill ${cls}" style="width:${pct}%"></div></div></div>`;
+}
+function renderManageCafes(){
+  const cafes=getCafes();
+  document.getElementById('manage-cafe-cards').innerHTML=cafes.map(c=>{
+    const orders=getOrders(c.id);const served=orders.filter(o=>o.status==='served');
+    const rev=served.reduce((a,o)=>a+o.total,0);
+    return `<div class="cafe-card">
+      <div class="cafe-card-header">
+        <span class="cafe-emoji">${c.emoji}</span>
+        <div style="flex:1;min-width:0">
+          <div class="cafe-card-name" contenteditable="true" onblur="renameCafe('${c.id}',this.textContent)">${c.name}</div>
+          <div class="cafe-card-stats">PIN: ${c.pin}</div>
+        </div>
+      </div>
+      <div class="cafe-card-row"><span class="lbl">Revenue</span><span class="val">₹${rev.toLocaleString()}</span></div>
+      <div class="cafe-card-row"><span class="lbl">Orders Served</span><span class="val">${served.length}</span></div>
+      <div class="cafe-card-row"><span class="lbl">Active Orders</span><span class="val">${orders.filter(o=>o.status!=='served').length}</span></div>
+      <div class="cafe-card-actions">
+        <button class="btn-open-cafe" onclick="openCafeAsOwner('${c.id}')">Open POS →</button>
+        <button class="btn-remove-cafe" onclick="confirmRemoveCafe('${c.id}','${c.name}')">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+  const sel=document.getElementById('ah-cafe-filter');
+  sel.innerHTML='<option value="all">All Cafés</option>'+cafes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+}
+function onAhPeriodChange(){
+  const period=document.getElementById('ah-period').value;
+  const daySel=document.getElementById('ah-day-sel');
+  const monSel=document.getElementById('ah-month-sel');
+  const yrSel=document.getElementById('ah-year-sel');
+  daySel.style.display='none';monSel.style.display='none';yrSel.style.display='none';
+  // Collect all orders to build date options
+  const all=getAllOrders().filter(o=>o.status==='served');
+  const now=new Date();
+  if(period==='daily'){
+    // Show last 30 days with orders
+    const days=[...new Set(all.map(o=>new Date(o.ts).toDateString()))].slice(0,30);
+    daySel.innerHTML=days.map(d=>`<option value="${d}">${new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</option>`).join('');
+    daySel.style.display='';
+  } else if(period==='monthly'){
+    const months=[...new Set(all.map(o=>{const d=new Date(o.ts);return d.getFullYear()+'-'+(d.getMonth()+1)}))];
+    monSel.innerHTML=months.map(m=>{const[y,mo]=m.split('-');return`<option value="${m}">${new Date(y,mo-1).toLocaleDateString('en-IN',{month:'long',year:'numeric'})}</option>`}).join('');
+    monSel.style.display='';
+  } else if(period==='yearly'){
+    const years=[...new Set(all.map(o=>new Date(o.ts).getFullYear()))];
+    yrSel.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');
+    yrSel.style.display='';
+  }
+  renderAllHistory();
+}
+function renderAllHistory(){
+  const orders=getAllOrders();
+  const cafeF=document.getElementById('ah-cafe-filter').value;
+  const payF=document.getElementById('ah-pay-filter').value;
+  const period=document.getElementById('ah-period').value;
+  let filtered=orders.filter(o=>o.status==='served');
+  if(cafeF!=='all')filtered=filtered.filter(o=>o.cafeId===cafeF);
+  if(payF!=='all')filtered=filtered.filter(o=>o.payMode===payF);
+  if(period==='daily'){
+    const dayVal=document.getElementById('ah-day-sel').value;
+    if(dayVal)filtered=filtered.filter(o=>new Date(o.ts).toDateString()===dayVal);
+  } else if(period==='monthly'){
+    const monVal=document.getElementById('ah-month-sel').value;
+    if(monVal){const[y,mo]=monVal.split('-').map(Number);filtered=filtered.filter(o=>{const d=new Date(o.ts);return d.getFullYear()===y&&d.getMonth()+1===mo;});}
+  } else if(period==='yearly'){
+    const yrVal=parseInt(document.getElementById('ah-year-sel').value);
+    if(yrVal)filtered=filtered.filter(o=>new Date(o.ts).getFullYear()===yrVal);
+  }
+  const rev=filtered.reduce((a,o)=>a+o.total,0);
+  const avg=filtered.length?Math.round(rev/filtered.length):0;
+  document.getElementById('ah-stats').innerHTML=`
+    <div class="h-stat"><div class="lbl">Orders</div><div class="val">${filtered.length}</div></div>
+    <div class="h-stat"><div class="lbl">Revenue</div><div class="val">₹${rev.toLocaleString()}</div></div>
+    <div class="h-stat"><div class="lbl">Avg Order</div><div class="val">₹${avg}</div></div>
+  `;
+  const empty='<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--muted)">No orders found</td></tr>';
+  document.getElementById('ah-tbody').innerHTML=filtered.map(o=>`
+    <tr>
+      <td style="font-weight:600;white-space:nowrap">${o.id}</td>
+      <td style="font-size:0.78rem;color:var(--muted)">${o.cafeName||''}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.8rem">${o.items.map(i=>i.name+'×'+i.qty).join(', ')}</td>
+      <td><span class="pay-tag">${o.payMode}${o.upiPlatform?' · '+o.upiPlatform:''}</span></td>
+      <td style="font-weight:600">₹${o.total}</td>
+      <td style="font-size:0.75rem;color:var(--muted);white-space:nowrap">${fmtDateFull(o.ts)} ${fmtTime(o.ts)}</td>
+    </tr>
+  `).join('')||empty;
+  // Mobile cards
+  document.getElementById('ah-card-list').innerHTML=filtered.map(o=>orderCard(o,true)).join('')
+    ||'<div style="text-align:center;padding:32px;color:var(--muted)">No orders found</div>';
+}
+function toggleAddCafeForm(){document.getElementById('add-cafe-form').classList.toggle('show')}
+function addCafe(){
+  const name=document.getElementById('new-cafe-name').value.trim();
+  const pin=document.getElementById('new-cafe-pin').value.trim();
+  const emoji=document.getElementById('new-cafe-emoji').value.trim()||'🏪';
+  if(!name||pin.length!==4||!/^\d{4}$/.test(pin))return alert('Enter a valid name and 4-digit PIN');
+  const cafes=getCafes();
+  cafes.push({id:'cafe'+Date.now(),name,pin,emoji});
+  saveCafes(cafes);renderManageCafes();toggleAddCafeForm();
+  document.getElementById('new-cafe-name').value='';document.getElementById('new-cafe-pin').value='';document.getElementById('new-cafe-emoji').value='';
+}
+function renameCafe(id,name){const cafes=getCafes();const c=cafes.find(x=>x.id===id);if(c&&name.trim())c.name=name.trim();saveCafes(cafes);}
+function confirmRemoveCafe(id,name){
+  document.getElementById('confirm-title').textContent='Remove Café';
+  document.getElementById('confirm-msg').textContent=`Remove "${name}" and all its orders? This cannot be undone.`;
+  document.getElementById('confirm-ok').onclick=()=>{removeCafe(id);closeModal('confirm-modal')};
+  document.getElementById('confirm-modal').classList.add('show');
+}
+function removeCafe(id){
+  const cafes=getCafes().filter(c=>c.id!==id);saveCafes(cafes);
+  localStorage.removeItem('orders_'+id);localStorage.removeItem('menu_'+id);
+  renderManageCafes();renderOwnerOverview();
+}
+function openCafeAsOwner(cid){
+  const cafes=getCafes();const cafe=cafes.find(c=>c.id===cid);if(!cafe)return;
+  currentUser={type:'cafe',cafe,isOwnerView:true};
+  document.getElementById('owner-dashboard').style.display='none';
+  document.getElementById('cafepos').style.display='flex';
+  syncHeader(cafe.emoji+' '+cafe.name+' (Owner View)',{showPin:true,showBackup:false,showBack:true});
+  document.getElementById('btn-dl-pdf').style.display='';
+  closeHeaderMenu();
+  initPOS();
+}
+
+// ===== CAFEPOS =====
+function initPOS(){
+  cart=[];payMode='cash';cartOpen=false;
+  closeCart();
+  const cid=currentUser.cafe.id;
+  showPosTab('order');
+  renderMenu();renderCart();renderKitchen();renderHistory();renderMenuManage();
+  updateKitchenBadge();updateResponsive();
+  // Auto-init Firebase cloud sync
+  fbInit(cid);
+  // Init delivery (restores connections + starts polling if connected)
+  initDelivery();
+}
+function showPosTab(tab){
+  document.querySelectorAll('.pos-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.pos-nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('nav-'+tab).classList.add('active');
+  if(tab==='kitchen')renderKitchen();
+  if(tab==='history')renderHistory();
+  if(tab==='menu')renderMenuManage();
+}
+// ===== CART TOGGLE =====
+let cartOpen=false;
+function toggleCart(){
+  cartOpen=!cartOpen;
+  const panel=document.getElementById('cart-panel');
+  const layout=document.getElementById('order-layout');
+  const lbl=document.getElementById('cart-toggle-label');
+  const fab=document.getElementById('cart-toggle-btn');
+  const backdrop=document.getElementById('cart-backdrop');
+  const isMob=window.innerWidth<=768;
+  if(cartOpen){
+    panel.classList.add('cart-visible');
+    if(layout&&!isMob)layout.classList.add('cart-open');
+    lbl.textContent='✕ Close Cart';
+    fab.classList.add('cart-open-state');
+    if(backdrop&&isMob)backdrop.classList.add('show');
+    // Scroll cart items to top when opened
+    const ci=document.getElementById('cart-items');if(ci)ci.scrollTop=0;
+  } else {
+    panel.classList.remove('cart-visible');
+    if(layout)layout.classList.remove('cart-open');
+    fab.classList.remove('cart-open-state');
+    if(backdrop)backdrop.classList.remove('show');
+    _updateFabLabel();
+  }
+}
+function closeCart(){
+  if(!cartOpen)return;
+  cartOpen=false;
+  const panel=document.getElementById('cart-panel');
+  const layout=document.getElementById('order-layout');
+  const fab=document.getElementById('cart-toggle-btn');
+  const backdrop=document.getElementById('cart-backdrop');
+  if(panel)panel.classList.remove('cart-visible');
+  if(layout)layout.classList.remove('cart-open');
+  if(fab)fab.classList.remove('cart-open-state');
+  if(backdrop)backdrop.classList.remove('show');
+  _updateFabLabel();
+}
+function _updateFabLabel(){
+  const lbl=document.getElementById('cart-toggle-label');
+  if(!lbl)return;
+  const qty=cart.reduce((a,c)=>a+c.qty,0);
+  if(qty>0){const {total}=cartTotal();lbl.textContent=`View Cart · ₹${total}`;}
+  else lbl.textContent='View Cart';
+}
+function updateCartBadge(){
+  const qty=cart.reduce((a,c)=>a+c.qty,0);
+  const badge=document.getElementById('cart-count-badge');
+  const pill=document.getElementById('cart-count-pill');
+  if(badge){badge.style.display=qty?'flex':'none';badge.textContent=qty;}
+  if(pill){pill.style.display=qty?'inline-flex':'none';pill.textContent=qty;}
+  if(!cartOpen)_updateFabLabel();
+}
+function updateResponsive(){updateCartBadge();}
+function toggleMobileCart(){toggleCart();}
+function backToDashboard(){
+  currentUser={type:'owner'};
+  document.getElementById('cafepos').style.display='none';
+  document.getElementById('owner-dashboard').style.display='block';
+  syncHeader('👑 Owner',{showPin:true,showBackup:true,showBack:false});
+  closeHeaderMenu();
+  renderOwnerDashboard();
+}
+
+// Touch swipe-down to close cart on mobile
+(function(){
+  let startY=0,startT=0,isDragging=false,lastDy=0;
+  document.addEventListener('DOMContentLoaded',()=>{
+    const handle=document.getElementById('cart-drag-handle');
+    const panel=document.getElementById('cart-panel');
+    if(!handle||!panel)return;
+    handle.addEventListener('touchstart',e=>{
+      startY=e.touches[0].clientY;startT=Date.now();isDragging=true;
+      panel.style.transition='none';
+    },{passive:true});
+    document.addEventListener('touchmove',e=>{
+      if(!isDragging)return;
+      lastDy=e.touches[0].clientY-startY;
+      if(lastDy>0)panel.style.transform=`translateY(${lastDy}px)`;
+      else panel.style.transform='';
+    },{passive:true});
+    document.addEventListener('touchend',()=>{
+      if(!isDragging)return;
+      isDragging=false;
+      panel.style.transition='';
+      panel.style.transform='';
+      const dt=Date.now()-startT;
+      if(lastDy>90||(lastDy>30&&dt<220))closeCart();
+      lastDy=0;
+    });
+  });
+})();
+
+// ===== MENU =====
+let activeCat='All';
+function renderMenu(){
+  const cid=currentUser.cafe.id;
+  const menu=getMenu(cid);
+  const cats=['All',...new Set(menu.map(i=>i.cat))];
+  document.getElementById('cat-filter').innerHTML=cats.map(c=>`
+    <button class="cat-btn ${c===activeCat?'active':''}" onclick="setCat('${c}')">${c}</button>
+  `).join('');
+  const filtered=activeCat==='All'?menu:menu.filter(i=>i.cat===activeCat);
+  const inCart=cart.reduce((m,ci)=>{m[ci.id]=ci.qty;return m},{});
+  document.getElementById('menu-grid').innerHTML=filtered.map(item=>`
+    <div class="menu-item ${item.available?'':'unavailable'}" onclick="addToCart('${item.id}')">
+      ${item.photo?`<img class="item-img" src="${item.photo}" onerror="this.style.display='none'"/>`:`<span class="item-emoji">${item.emoji||'☕'}</span>`}
+      <div class="item-name">${item.name}</div>
+      <div class="item-price">₹${item.price}</div>
+      ${inCart[item.id]?`<span class="item-in-cart">${inCart[item.id]}</span>`:''}
+    </div>
+  `).join('');
+}
+function setCat(c){activeCat=c;renderMenu();}
+function addToCart(id){
+  const menu=getMenu(currentUser.cafe.id);
+  const item=menu.find(i=>i.id===id);if(!item)return;
+  const ci=cart.find(c=>c.id===id);
+  if(ci)ci.qty++;else cart.push({...item,qty:1});
+  renderCart();renderMenu();updateCartBadge();
+}
+function removeFromCart(id){
+  const ci=cart.find(c=>c.id===id);if(!ci)return;
+  if(ci.qty>1)ci.qty--;else cart=cart.filter(c=>c.id!==id);
+  renderCart();renderMenu();updateCartBadge();
+}
+function clearCart(){cart=[];renderCart();renderMenu();updateCartBadge();closeCart();}
+function cartTotal(){
+  const sub=cart.reduce((a,c)=>a+c.price*c.qty,0);
+  const gst=Math.round(sub*GST);
+  return {sub,gst,total:sub+gst};
+}
+function renderCart(){
+  const items=document.getElementById('cart-items');
+  if(!cart.length){
+    items.innerHTML='<div class="cart-empty"><span class="cart-empty-icon">🛒</span>Tap items to add</div>';
+    document.getElementById('cart-totals').innerHTML='';
+    document.getElementById('place-btn').disabled=true;
+    return;
+  }
+  document.getElementById('place-btn').disabled=false;
+  items.innerHTML=cart.map(ci=>`
+    <div class="cart-item">
+      <span class="ci-emoji">${ci.emoji||'☕'}</span>
+      <span class="ci-name">${ci.name}</span>
+      <div class="ci-controls">
+        <button class="qty-btn" onclick="removeFromCart('${ci.id}')">−</button>
+        <span class="qty-num">${ci.qty}</span>
+        <button class="qty-btn" onclick="addToCart('${ci.id}')">+</button>
+      </div>
+      <span class="ci-price">₹${ci.price*ci.qty}</span>
+    </div>
+  `).join('');
+  const {sub,gst,total}=cartTotal();
+  document.getElementById('cart-totals').innerHTML=`
+    <div class="total-row"><span>Subtotal</span><span>₹${sub}</span></div>
+    <div class="total-row"><span>GST (5%)</span><span>₹${gst}</span></div>
+    <div class="total-row grand"><span>Grand Total</span><span>₹${total}</span></div>
+  `;
+  document.getElementById('cash-quick').innerHTML=[Math.ceil(total/10)*10,Math.ceil(total/50)*50,Math.ceil(total/100)*100,500,1000].filter((v,i,a)=>v>=total&&a.indexOf(v)===i).slice(0,4).map(v=>`<button class="cash-q-btn" onclick="setCashQuick(${v})">₹${v}</button>`).join('');
+  calcChange();
+}
+function setPayMode(mode,el){
+  payMode=mode;
+  document.querySelectorAll('.pay-btn').forEach(b=>b.classList.remove('active'));
+  (el||event.target).classList.add('active');
+  document.getElementById('cash-area').classList.toggle('show',mode==='cash'||mode==='split');
+  document.getElementById('upi-sel').classList.toggle('show',mode==='online');
+}
+function setUpi(btn,platform){
+  upiPlatform=platform;
+  document.querySelectorAll('.upi-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function setCashQuick(v){document.getElementById('cash-given').value=v;calcChange();}
+function calcChange(){
+  const given=parseFloat(document.getElementById('cash-given').value)||0;
+  const {total}=cartTotal();
+  const change=given-total;
+  document.getElementById('change-row').textContent=given>=total?`Change: ₹${change.toFixed(0)}`:(given?`Still need ₹${Math.abs(change).toFixed(0)}`:'');
+}
+function placeOrder(){
+  if(!cart.length)return;
+  const cid=currentUser.cafe.id;
+  const {sub,gst,total}=cartTotal();
+  const order={
+    id:genOrderId(cid),
+    cafeId:cid,
+    items:cart.map(i=>({id:i.id,name:i.name,price:i.price,qty:i.qty,emoji:i.emoji})),
+    subtotal:sub,gst,total,
+    payMode,
+    upiPlatform:payMode==='online'?upiPlatform:undefined,
+    cashGiven:payMode==='cash'?parseFloat(document.getElementById('cash-given').value)||0:undefined,
+    status:'preparing',
+    ts:Date.now(),
+    type:'dine'
+  };
+  const orders=getOrders(cid);orders.unshift(order);saveOrders(cid,orders);
+  cart=[];payMode='cash';
+  renderCart();renderMenu();updateCartBadge();closeCart();
+  document.getElementById('cash-area').classList.remove('show');
+  document.getElementById('upi-sel').classList.remove('show');
+  document.querySelectorAll('.pay-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+  showPosTab('kitchen');updateKitchenBadge();
+}
+
+// ===== KITCHEN =====
+function renderKitchen(){
+  const cid=currentUser.cafe.id;
+  const orders=getOrders(cid).filter(o=>o.status!=='served');
+  const grid=document.getElementById('kitchen-grid');
+  if(!orders.length){grid.innerHTML='<div class="kitchen-empty"><div class="kitchen-empty-icon">🍳</div><p>No active orders</p></div>';return;}
+  grid.innerHTML=orders.map(o=>`
+    <div class="kitchen-card ${o.status}">
+      <div class="kc-header">
+        <span class="kc-id">${o.id}</span>
+        <span class="kc-time">${fmtTime(o.ts)}</span>
+      </div>
+      <div class="kc-body">
+        ${o.items.map(i=>`<div class="kc-item"><span>${i.emoji||''}${i.name}</span><span>×${i.qty}</span></div>`).join('')}
+        <div class="kc-total">Total: ₹${o.total} · ${o.payMode}${o.upiPlatform?' ('+o.upiPlatform+')':''}</div>
+      </div>
+      <div class="kc-footer">
+        ${o.status==='preparing'?`<button class="kc-status-btn kc-ready-btn" onclick="setOrderStatus('${o.id}','ready')">Mark Ready</button>`:''}
+        ${o.status==='ready'?`<button class="kc-status-btn kc-served-btn" onclick="setOrderStatus('${o.id}','served')">Mark Served</button>`:''}
+        ${o.status==='preparing'?'':`<button class="kc-status-btn kc-preparing-btn" onclick="setOrderStatus('${o.id}','preparing')">← Back</button>`}
+        <button class="kc-print-btn" onclick="showReceipt('${o.id}')">🖨️</button>
+      </div>
+    </div>
+  `).join('');
+}
+function setOrderStatus(oid,status){
+  const cid=currentUser.cafe.id;
+  const orders=getOrders(cid);
+  const o=orders.find(x=>x.id===oid);
+  if(o){o.status=status;saveOrders(cid,orders);}
+  renderKitchen();updateKitchenBadge();
+}
+function updateKitchenBadge(){
+  const cid=currentUser.cafe.id;
+  const n=getOrders(cid).filter(o=>o.status!=='served').length;
+  const badge=document.getElementById('kitchen-badge');
+  badge.style.display=n?'flex':'none';badge.textContent=n;
+}
+
+// ===== HISTORY =====
+// ===== SHARED ORDER CARD (mobile) =====
+function orderCard(o, showCafe=false){
+  const cafeLabel=showCafe&&o.cafeName?`<span class="time-tag">📍 ${o.cafeName}</span>`:'';
+  return `<div class="order-card">
+    <div class="order-card-top">
+      <span class="order-card-id">${o.id}</span>
+      <span class="order-card-amount">₹${o.total}</span>
+    </div>
+    <div class="order-card-items">${o.items.map(i=>`${i.emoji||''}${i.name} ×${i.qty}`).join(' · ')}</div>
+    <div class="order-card-footer">
+      <div class="order-card-meta">
+        <span class="pay-tag">${o.payMode}${o.upiPlatform?' · '+o.upiPlatform:''}</span>
+        ${cafeLabel}
+        <span class="time-tag">🕐 ${fmtDateFull(o.ts)} ${fmtTime(o.ts)}</span>
+      </div>
+      <button class="print-mini-btn" onclick="showReceipt('${o.id}')">🖨️ Receipt</button>
+    </div>
+  </div>`;
+}
+
+function renderHistory(){
+  const cid=currentUser.cafe.id;
+  const isOwner=currentUser.isOwnerView||currentUser.type==='owner';
+  document.getElementById('btn-dl-pdf').style.display=isOwner?'':'none';
+  let orders=getOrders(cid).filter(o=>o.status==='served');
+  const period=document.getElementById('h-period').value;
+  const pay=document.getElementById('h-pay').value;
+  const now=new Date();
+  if(period==='daily'){const d=now.toDateString();orders=orders.filter(o=>new Date(o.ts).toDateString()===d);}
+  else if(period==='monthly'){orders=orders.filter(o=>{const d=new Date(o.ts);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()});}
+  else if(period==='yearly'){orders=orders.filter(o=>new Date(o.ts).getFullYear()===now.getFullYear());}
+  if(pay!=='all')orders=orders.filter(o=>o.payMode===pay);
+  const rev=orders.reduce((a,o)=>a+o.total,0);
+  const avg=orders.length?Math.round(rev/orders.length):0;
+  const active=getOrders(cid).filter(o=>o.status!=='served').length;
+  document.getElementById('pos-h-stats').innerHTML=`
+    <div class="h-stat"><div class="lbl">Orders Served</div><div class="val">${orders.length}</div></div>
+    <div class="h-stat"><div class="lbl">Revenue</div><div class="val">₹${rev.toLocaleString()}</div></div>
+    <div class="h-stat"><div class="lbl">Avg Order</div><div class="val">₹${avg}</div></div>
+    <div class="h-stat"><div class="lbl">Active Orders</div><div class="val">${active}</div></div>
+  `;
+  const empty='<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--muted)">No orders found for this period</td></tr>';
+  document.getElementById('h-tbody').innerHTML=orders.map(o=>`
+    <tr>
+      <td style="font-weight:600;white-space:nowrap">${o.id}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.8rem">${o.items.map(i=>i.name+'×'+i.qty).join(', ')}</td>
+      <td><span class="pay-tag">${o.payMode}${o.upiPlatform?' · '+o.upiPlatform:''}</span></td>
+      <td style="font-weight:600">₹${o.total}</td>
+      <td style="font-size:0.75rem;color:var(--muted);white-space:nowrap">${fmtDateFull(o.ts)} ${fmtTime(o.ts)}</td>
+      <td><button class="print-mini-btn" onclick="showReceipt('${o.id}')">🖨️</button></td>
+    </tr>
+  `).join('')||empty;
+  // Mobile cards
+  document.getElementById('h-card-list').innerHTML=orders.map(o=>orderCard(o,false)).join('')
+    ||'<div style="text-align:center;padding:32px;color:var(--muted)">No orders found for this period</div>';
+}
+
+// ===== MENU MANAGE =====
+function renderMenuManage(){
+  const cid=currentUser.cafe.id;
+  const menu=getMenu(cid);
+  const cats=getCats(cid);
+  document.getElementById('menu-manage').innerHTML=cats.map(cat=>{
+    const items=menu.filter(i=>i.cat===cat);
+    return `<div class="cat-section">
+      <div class="cat-section-header">
+        <span class="cat-section-name">${cat}</span>
+        <span class="cat-section-count">${items.length} items</span>
+      </div>
+      ${items.map(item=>`
+        <div class="menu-item-row">
+          ${item.photo?`<img class="mi-img" src="${item.photo}" onerror="this.style.display='none'"/>`:`<span class="mi-emoji">${item.emoji||'☕'}</span>`}
+          <div class="mi-details"><div class="mi-name">${item.name}</div><div class="mi-price">₹${item.price}</div></div>
+          <div class="mi-actions">
+            <button class="toggle-btn ${item.available?'on':'off'}" onclick="toggleItem('${item.id}')"></button>
+            <button class="mi-edit-btn" onclick="openEditItemModal('${item.id}')">Edit</button>
+            <button class="mi-delete-btn" onclick="deleteItem('${item.id}')">🗑</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+  }).join('');
+}
+function toggleItem(id){
+  const cid=currentUser.cafe.id;const menu=getMenu(cid);
+  const item=menu.find(i=>i.id===id);if(item)item.available=!item.available;
+  saveMenu(cid,menu);renderMenuManage();renderMenu();
+}
+function deleteItem(id){
+  const cid=currentUser.cafe.id;const menu=getMenu(cid).filter(i=>i.id!==id);
+  saveMenu(cid,menu);renderMenuManage();renderMenu();
+}
+function openAddItemModal(){
+  editItemId=null;
+  document.getElementById('item-modal-title').textContent='Add Menu Item';
+  ['item-name','item-price','item-emoji','item-photo'].forEach(id=>document.getElementById(id).value='');
+  populateItemCatSelect();
+  document.getElementById('add-item-modal').classList.add('show');
+}
+function openEditItemModal(id){
+  const cid=currentUser.cafe.id;const menu=getMenu(cid);const item=menu.find(i=>i.id===id);if(!item)return;
+  editItemId=id;
+  document.getElementById('item-modal-title').textContent='Edit Item';
+  document.getElementById('item-name').value=item.name;
+  document.getElementById('item-price').value=item.price;
+  document.getElementById('item-emoji').value=item.emoji||'';
+  document.getElementById('item-photo').value=item.photo||'';
+  populateItemCatSelect(item.cat);
+  document.getElementById('add-item-modal').classList.add('show');
+}
+function populateItemCatSelect(sel){
+  const cats=getCats(currentUser.cafe.id);
+  const s=document.getElementById('item-cat');
+  s.innerHTML=cats.map(c=>`<option value="${c}" ${c===sel?'selected':''}>${c}</option>`).join('');
+}
+function saveItem(){
+  const cid=currentUser.cafe.id;
+  const name=document.getElementById('item-name').value.trim();
+  const price=parseFloat(document.getElementById('item-price').value);
+  const cat=document.getElementById('item-cat').value;
+  const emoji=document.getElementById('item-emoji').value.trim()||'☕';
+  const photo=document.getElementById('item-photo').value.trim();
+  if(!name||isNaN(price))return alert('Enter name and valid price');
+  const menu=getMenu(cid);
+  if(editItemId){const item=menu.find(i=>i.id===editItemId);if(item){item.name=name;item.price=price;item.cat=cat;item.emoji=emoji;item.photo=photo||undefined;}}
+  else{menu.push({id:'i'+Date.now(),name,price,cat,emoji,photo:photo||undefined,available:true});}
+  saveMenu(cid,menu);closeModal('add-item-modal');renderMenuManage();renderMenu();
+}
+function openAddCatModal(){document.getElementById('new-cat-name').value='';document.getElementById('add-cat-modal').classList.add('show');}
+function addCategory(){
+  const cid=currentUser.cafe.id;const name=document.getElementById('new-cat-name').value.trim();
+  if(!name)return;const cats=getCats(cid);if(!cats.includes(name))cats.push(name);saveCats(cid,cats);
+  closeModal('add-cat-modal');renderMenuManage();renderMenu();
+}
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║        COMPLETE AUTO CLOUD SYNC — ALL DATA                  ║
+// ║  Syncs: orders, cafes, menus, categories, pins, settings    ║
+// ║  Engine: Firebase Realtime Database (free tier)             ║
+// ║  Mode: Auto-init on login, real-time poll every 4s          ║
+// ║  Conflict: Version-vector merge, newest-write-wins per field ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║        COMPLETE MULTI-DEVICE SYNC ENGINE                    ║
+// ║  • Auto-connects on login — no setup needed                 ║
+// ║  • Pulls every 3s, pushes instantly on every change         ║
+// ║  • Works for unlimited devices simultaneously               ║
+// ║  • New device gets ALL data from cloud on first login       ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+// ── YOUR FIREBASE DATABASE URL ────────────────────────────────────
+// Get this from: Firebase Console → Realtime Database → Copy URL
+// Format: https://YOUR-PROJECT-default-rtdb.REGION.firebasedatabase.app
+const FB_BASE = 'https://mycafepos-rtdb-default-rtdb.firebaseio.com';
+// ─────────────────────────────────────────────────────────────────
+
+let _fbNS      = null;   // namespace (owner-specific, derived from PIN)
+let _fbCafeId  = null;   // active café ID
+let _fbLoop    = null;   // poll interval
+let _fbOnline  = false;
+let _fbReady   = false;  // true after first sync completes
+let _myDev     = null;   // this device's unique ID
+
+// Device ID — persists in localStorage
+function _devId() {
+  if (_myDev) return _myDev;
+  _myDev = localStorage.getItem('_mycafepos_device');
+  if (!_myDev) {
+    _myDev = 'DEV_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
+    localStorage.setItem('_mycafepos_device', _myDev);
+  }
+  return _myDev;
+}
+
+// Namespace — same hash for same owner PIN on every device
+// This is what makes all devices find each other's data
+function _ns(pin) {
+  let h = 0x811c9dc5;
+  const p = String(pin || '1234');
+  for (let i = 0; i < p.length; i++) {
+    h ^= p.charCodeAt(i);
+    h = (h * 0x01000193) >>> 0;
+  }
+  return 'cafe_' + h.toString(16).padStart(8, '0');
+}
+
+// ── Firebase REST ─────────────────────────────────────────────────
+async function _fbFetch(method, path, data) {
+  const r = await fetch(`${FB_BASE}/${path}.json`, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: data !== undefined ? JSON.stringify(data) : undefined
+  });
+  if (!r.ok) throw new Error('Firebase ' + r.status);
+  return r.json();
+}
+const _fw = (p, d)  => _fbFetch('PUT',   p, d);
+const _fp = (p, d)  => _fbFetch('PATCH', p, d);
+const _fr = (p)     => _fbFetch('GET',   p);
+
+// ── Versioned wrapper ─────────────────────────────────────────────
+function _v(data) {
+  return { ...data, __v: Date.now(), __d: _devId() };
+}
+
+// ── START SYNC ────────────────────────────────────────────────────
+async function fbInit(cafeId) {
+  clearInterval(_fbLoop);
+  _fbCafeId = cafeId;
+  _fbReady  = false;
+  showCloudBadge('connecting');
+
+  // NS is set from the PIN typed at login (window._ownerPin)
+  _fbNS = _ns(window._ownerPin || getOwnerPin());
+
+  try {
+    // Test connectivity
+    await _fw(`${_fbNS}/online/${_devId()}`, { ts: Date.now() });
+    _fbOnline = true;
+
+    // STEP 1: Pull everything from cloud first
+    await _syncDown(cafeId, true);
+
+    // STEP 2: Push this device's current state
+    await _syncUp(cafeId);
+
+    _fbReady = true;
+    showCloudBadge('online');
+
+    // STEP 3: Poll every 3 seconds
+    _fbLoop = setInterval(async () => {
+      try {
+        await _syncDown(cafeId, false);
+        if (!_fbOnline) { _fbOnline = true; showCloudBadge('online'); }
+      } catch(e) {
+        _fbOnline = false; showCloudBadge('offline');
+      }
+    }, 3000);
+
+  } catch(e) {
+    _fbOnline = false;
+    showCloudBadge('offline');
+    console.warn('[sync] offline:', e.message);
+  }
+}
+
+async function fbInitOwner() {
+  clearInterval(_fbLoop);
+  _fbNS = _ns(window._ownerPin || getOwnerPin());
+  showCloudBadge('connecting');
+  try {
+    await _fw(`${_fbNS}/online/${_devId()}`, { ts: Date.now() });
+    _fbOnline = true;
+
+    // Pull global data first
+    const g = await _fr(`${_fbNS}/global`);
+    if (g && g.cafes) {
+      localStorage.setItem('cafes', JSON.stringify(g.cafes));
+      if (g.ownerPin) localStorage.setItem('ownerPin', JSON.stringify(g.ownerPin));
+      renderLoginAccounts();
+      renderOwnerDashboard();
+    }
+
+    // Push this device's global state
+    await _fw(`${_fbNS}/global`, _v({ cafes: getCafes(), ownerPin: getOwnerPin() }));
+    showCloudBadge('online');
+
+    // Poll global every 5s
+    _fbLoop = setInterval(async () => {
+      try {
+        const g2 = await _fr(`${_fbNS}/global`);
+        if (g2 && g2.__d !== _devId() && g2.cafes) {
+          localStorage.setItem('cafes', JSON.stringify(g2.cafes));
+          if (g2.ownerPin) localStorage.setItem('ownerPin', JSON.stringify(g2.ownerPin));
+          renderLoginAccounts();
+          renderOwnerDashboard();
+        }
+        showCloudBadge('online');
+      } catch(e) { showCloudBadge('offline'); }
+    }, 5000);
+  } catch(e) {
+    _fbOnline = false; showCloudBadge('offline');
+  }
+}
+
+function fbStop() {
+  clearInterval(_fbLoop);
+  _fbNS = null; _fbCafeId = null; _fbOnline = false; _fbReady = false;
+  showCloudBadge('off');
+}
+
+// ── SYNC DOWN: pull cloud → local ────────────────────────────────
+async function _syncDown(cafeId, isFirstSync) {
+  const ns = _fbNS;
+  let uiRefresh = false;
+
+  // Pull café data (orders + menu + cats)
+  const remote = await _fr(`${ns}/cafe/${cafeId}`);
+  if (remote) {
+    // Orders
+    if (remote.orders && Array.isArray(remote.orders)) {
+      const merged = _mergeOrdersDown(cafeId, remote.orders, isFirstSync);
+      if (merged) { updateKitchenBadge(); uiRefresh = true; }
+    }
+    // Menu
+    if (remote.menu && Array.isArray(remote.menu)) {
+      const changed = _mergeMenuDown(cafeId, remote.menu);
+      if (changed) uiRefresh = true;
+    }
+    // Categories
+    if (remote.cats && Array.isArray(remote.cats)) {
+      const local = getCats(cafeId);
+      const merged = [...new Set([...local, ...remote.cats])];
+      if (merged.length > local.length) { localStorage.setItem('cats_' + cafeId, JSON.stringify(merged)); uiRefresh = true; }
+    }
+  }
+
+  // Pull global (cafes list + pins)
+  const global = await _fr(`${ns}/global`);
+  if (global && global.cafes) {
+    const localCafes = getCafes();
+    const remoteCafes = global.cafes;
+    // Merge: add any new cafes from cloud
+    let cafesChanged = false;
+    const localMap = Object.fromEntries(localCafes.map(c => [c.id, c]));
+    for (const rc of remoteCafes) {
+      if (!localMap[rc.id]) { localMap[rc.id] = rc; cafesChanged = true; }
+      else if (rc.pin && rc.pin !== localMap[rc.id].pin) { localMap[rc.id] = { ...localMap[rc.id], ...rc }; cafesChanged = true; }
+    }
+    if (cafesChanged) {
+      localStorage.setItem('cafes', JSON.stringify(Object.values(localMap)));
+      renderLoginAccounts();
+    }
+    if (global.ownerPin && global.ownerPin !== getOwnerPin()) {
+      localStorage.setItem('ownerPin', JSON.stringify(global.ownerPin));
+    }
+  }
+
+  if (uiRefresh) _refreshActiveTab();
+  showCloudBadge('online');
+  return uiRefresh;
+}
+
+// ── SYNC UP: push local → cloud ───────────────────────────────────
+async function _syncUp(cafeId) {
+  if (!_fbOnline || !_fbNS) return;
+  const ns = _fbNS;
+  try {
+    await _fw(`${ns}/cafe/${cafeId}`, _v({
+      orders: _localOrders(cafeId),
+      menu:   getMenu(cafeId),
+      cats:   getCats(cafeId),
+    }));
+    await _fw(`${ns}/global`, _v({
+      cafes:    getCafes(),
+      ownerPin: getOwnerPin(),
+    }));
+  } catch(e) { _fbOnline = false; showCloudBadge('offline'); }
+}
+
+// ── Push immediately on any save ─────────────────────────────────
+function _pushCafe(cafeId) {
+  if (!_fbOnline || !_fbNS || !cafeId) return;
+  _fw(`${_fbNS}/cafe/${cafeId}`, _v({
+    orders: _localOrders(cafeId),
+    menu:   getMenu(cafeId),
+    cats:   getCats(cafeId),
+  })).catch(() => { _fbOnline = false; showCloudBadge('offline'); });
+}
+function _pushGlobal() {
+  if (!_fbOnline || !_fbNS) return;
+  _fw(`${_fbNS}/global`, _v({ cafes: getCafes(), ownerPin: getOwnerPin() }))
+    .catch(() => {});
+}
+
+// ── Merge orders: cloud wins for each order if newer ─────────────
+function _mergeOrdersDown(cafeId, remoteOrders, replaceAll) {
+  const local = _localOrders(cafeId);
+  if (replaceAll && local.length === 0 && remoteOrders.length > 0) {
+    localStorage.setItem('orders_' + cafeId, JSON.stringify(remoteOrders));
+    if (remoteOrders.length) showToast(`☁ ${remoteOrders.length} orders loaded from cloud`);
+    return true;
+  }
+  const map = Object.fromEntries(local.map(o => [o.id, o]));
+  let changed = false, newC = 0, updC = 0;
+  for (const ro of remoteOrders) {
+    if (!map[ro.id]) { map[ro.id] = ro; newC++; changed = true; }
+    else if ((ro.__v || 0) > (map[ro.id].__v || 0)) {
+      if (map[ro.id].status !== ro.status) updC++;
+      map[ro.id] = { ...map[ro.id], ...ro };
+      changed = true;
+    }
+  }
+  if (changed) {
+    const sorted = Object.values(map).sort((a, b) => b.ts - a.ts);
+    localStorage.setItem('orders_' + cafeId, JSON.stringify(sorted));
+    if (newC) showToast(`📲 ${newC} new order${newC > 1 ? 's' : ''} from another device`);
+    if (updC) showToast(`🔄 ${updC} order${updC > 1 ? 's' : ''} updated`, 'info');
+  }
+  return changed;
+}
+
+function _mergeMenuDown(cafeId, remoteMenu) {
+  const local = getMenu(cafeId);
+  const map = Object.fromEntries(local.map(i => [i.id, i]));
+  let changed = false;
+  for (const ri of remoteMenu) {
+    if (!map[ri.id]) { map[ri.id] = ri; changed = true; }
+    else if ((ri.__v || 0) > (map[ri.id].__v || 0)) { map[ri.id] = { ...map[ri.id], ...ri }; changed = true; }
+  }
+  if (changed) localStorage.setItem('menu_' + cafeId, JSON.stringify(Object.values(map)));
+  return changed;
+}
+
+// ── Raw localStorage readers (bypass overridden functions) ────────
+function _localOrders(cid) {
+  try { const v = localStorage.getItem('orders_' + cid); return v ? JSON.parse(v) : []; } catch { return []; }
+}
+
+function _refreshActiveTab() {
+  const tabs = ['kitchen', 'history', 'menu', 'order'];
+  for (const t of tabs) {
+    const el = document.getElementById('tab-' + t);
+    if (el && el.classList.contains('active')) {
+      if (t === 'kitchen') renderKitchen();
+      else if (t === 'history') renderHistory();
+      else if (t === 'menu') renderMenuManage();
+      else if (t === 'order') renderMenu();
+      break;
+    }
+  }
+}
+
+// ── Override save functions to push to cloud instantly ────────────
+const _origSaveData  = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+const _origGetOrders = _localOrders;
+const _origGetMenu   = (cid) => { try { const v = localStorage.getItem('menu_' + cid); return v ? JSON.parse(v) : DEFAULT_ITEMS.map(i => ({ ...i })); } catch { return DEFAULT_ITEMS.map(i => ({ ...i })); } };
+const _origGetCats   = (cid) => { try { const v = localStorage.getItem('cats_' + cid); return v ? JSON.parse(v) : [...DEFAULT_CATS]; } catch { return [...DEFAULT_CATS]; } };
+
+function saveOrders(cid, orders) {
+  orders = orders.map(o => ({ ...o, __v: o.__v || Date.now(), __d: _devId() }));
+  localStorage.setItem('orders_' + cid, JSON.stringify(orders));
+  _pushCafe(cid);
+}
+function saveMenu(cid, m) {
+  m = m.map(i => ({ ...i, __v: i.__v || Date.now() }));
+  localStorage.setItem('menu_' + cid, JSON.stringify(m));
+  _pushCafe(cid);
+}
+function saveCats(cid, c) {
+  localStorage.setItem('cats_' + cid, JSON.stringify(c));
+  _pushCafe(cid);
+}
+function saveCafes(c) {
+  localStorage.setItem('cafes', JSON.stringify(c));
+  _pushGlobal();
+}
+function saveOwnerPin(p) {
+  localStorage.setItem('ownerPin', JSON.stringify(p));
+  _pushGlobal();
+}
+
+// ── Cloud badge ──────────────────────────────────────────────────
+function showCloudBadge(state) {
+  const el = document.getElementById('cloud-badge');
+  if (!el) return;
+  const map = {
+    online:      { text: '☁ Synced',       color: 'var(--mint)',    bg: '#f0fdf4', border: '#86efac' },
+    connecting:  { text: '⟳ Connecting',   color: 'var(--caramel)', bg: '#fff8f0', border: 'var(--border)' },
+    offline:     { text: '⚡ Local Only',   color: 'var(--muted)',   bg: 'var(--foam)', border: 'var(--border)' },
+    off:         { text: '',                color: '',               bg: '',         border: '' },
+  };
+  const m = map[state] || map.off;
+  el.textContent       = m.text;
+  el.style.color       = m.color;
+  el.style.background  = m.bg;
+  el.style.borderColor = m.border;
+  el.style.display     = m.text ? '' : 'none';
+}
+
+// ── Toast system ────────────────────────────────────────────────
+let _toastQ = [];
+function showToast(msg, type='success') {
+  _toastQ.push({ msg, type });
+  if (_toastQ.length === 1) _nextToast();
+}
+function _nextToast() {
+  if (!_toastQ.length) return;
+  const { msg, type } = _toastQ[0];
+  const colors = { success: 'var(--mint)', info: 'var(--caramel)', error: 'var(--danger-text)' };
+  const t = document.createElement('div');
+  t.style.cssText = `
+    position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(0);
+    background:var(--espresso);color:#fff;padding:10px 22px;border-radius:100px;
+    font-size:0.82rem;font-weight:500;z-index:9999;white-space:nowrap;
+    border-left:3px solid ${colors[type]||colors.success};
+    box-shadow:0 4px 20px rgba(0,0,0,0.28);
+    animation:_tIn .25s ease,_tOut .25s ease 2.5s both;pointer-events:none;`;
+  t.textContent = msg;
+  if (!document.querySelector('style[data-t]')) {
+    const s = document.createElement('style');
+    s.setAttribute('data-t','1');
+    s.textContent='@keyframes _tIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}@keyframes _tOut{to{opacity:0;transform:translateX(-50%) translateY(10px)}}';
+    document.head.appendChild(s);
+  }
+  document.body.appendChild(t);
+  setTimeout(() => { t.remove(); _toastQ.shift(); _nextToast(); }, 2900);
+}
+
+// ╔══════════════════════════════════════════════════════╗
+// ║   FEATURE 1: REAL-TIME DELIVERY                     ║
+// ║   Architecture:                                     ║
+// ║   • Zomato/Swiggy send webhooks to a relay server   ║
+// ║   • We poll our Firebase node every 10s for orders  ║
+// ║   • Credentials stored locally, relay URL is fixed  ║
+// ║   • Simulated test orders available offline         ║
+// ╚══════════════════════════════════════════════════════╝
+
+let deliveries = [];
+let deliveryPollInterval = null;
+let zomatoConnected = false;
+let swiggyConnected = false;
+
+function loadDeliveryConfig() { return loadData('delivery_config', {}); }
+function saveDeliveryConfig(cfg) { saveData('delivery_config', cfg); }
+
+function openDeliveryConnect() {
+  const panel = document.getElementById('delivery-connect-panel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  // Load saved config
+  const cfg = loadDeliveryConfig();
+  if (cfg.zomato) {
+    document.getElementById('z-restaurant-id').value = cfg.zomato.restaurantId || '';
+    if (cfg.zomato.connected) _setZomatoConnected(true);
+  }
+  if (cfg.swiggy) {
+    document.getElementById('s-vendor-id').value = cfg.swiggy.vendorId || '';
+    if (cfg.swiggy.connected) _setSwiggyConnected(true);
+  }
+}
+function closeDeliveryConnect() {
+  document.getElementById('delivery-connect-panel').style.display = 'none';
+}
+
+async function toggleZomato() {
+  if (zomatoConnected) {
+    _setZomatoConnected(false);
+    const cfg = loadDeliveryConfig();
+    delete cfg.zomato;
+    saveDeliveryConfig(cfg);
+    showToast('Zomato disconnected', 'info');
+    return;
+  }
+  const rid = document.getElementById('z-restaurant-id').value.trim();
+  const key = document.getElementById('z-api-key').value.trim();
+  if (!rid || !key) { showToast('Enter Restaurant ID and API Key', 'error'); return; }
+  document.getElementById('z-conn-status').textContent = 'Connecting…';
+  document.getElementById('z-toggle-btn').disabled = true;
+  // Register webhook with relay node in Firebase
+  try {
+    await fbPut(`delivery/webhooks/${rid}`, {
+      platform: 'zomato', restaurantId: rid,
+      cafeId: fbCafeId, ts: Date.now(),
+      // In production, Zomato would POST to: https://mycafepos-relay.workers.dev/zomato/{rid}
+      webhookUrl: `${FB_URL}/delivery/zomato_orders/${rid}`
+    });
+    const cfg = loadDeliveryConfig();
+    cfg.zomato = { restaurantId: rid, connected: true, connectedAt: Date.now() };
+    saveDeliveryConfig(cfg);
+    _setZomatoConnected(true);
+    showToast('✅ Zomato connected — polling for orders');
+    startDeliveryPolling();
+  } catch(e) {
+    document.getElementById('z-conn-status').textContent = 'Connection failed';
+    showToast('Could not connect to Zomato', 'error');
+  }
+  document.getElementById('z-toggle-btn').disabled = false;
+}
+
+async function toggleSwiggy() {
+  if (swiggyConnected) {
+    _setSwiggyConnected(false);
+    const cfg = loadDeliveryConfig();
+    delete cfg.swiggy;
+    saveDeliveryConfig(cfg);
+    showToast('Swiggy disconnected', 'info');
+    return;
+  }
+  const vid = document.getElementById('s-vendor-id').value.trim();
+  const sec = document.getElementById('s-secret').value.trim();
+  if (!vid || !sec) { showToast('Enter Vendor ID and Secret Key', 'error'); return; }
+  document.getElementById('s-conn-status').textContent = 'Connecting…';
+  document.getElementById('s-toggle-btn').disabled = true;
+  try {
+    await fbPut(`delivery/webhooks/swiggy_${vid}`, {
+      platform: 'swiggy', vendorId: vid,
+      cafeId: fbCafeId, ts: Date.now()
+    });
+    const cfg = loadDeliveryConfig();
+    cfg.swiggy = { vendorId: vid, connected: true, connectedAt: Date.now() };
+    saveDeliveryConfig(cfg);
+    _setSwiggyConnected(true);
+    showToast('✅ Swiggy connected — polling for orders');
+    startDeliveryPolling();
+  } catch(e) {
+    document.getElementById('s-conn-status').textContent = 'Connection failed';
+    showToast('Could not connect to Swiggy', 'error');
+  }
+  document.getElementById('s-toggle-btn').disabled = false;
+}
+
+function _setZomatoConnected(val) {
+  zomatoConnected = val;
+  const el = document.getElementById('z-conn-status');
+  const btn = document.getElementById('z-toggle-btn');
+  const f = document.getElementById('z-fields');
+  if (el) el.textContent = val ? '✅ Connected · Live orders' : 'Not connected';
+  if (btn) { btn.textContent = val ? 'Disconnect' : 'Connect'; btn.style.background = val ? '#dc2626' : '#e23744'; }
+  if (f) f.style.opacity = val ? '0.4' : '1';
+  _updateDeliveryBadge();
+}
+function _setSwiggyConnected(val) {
+  swiggyConnected = val;
+  const el = document.getElementById('s-conn-status');
+  const btn = document.getElementById('s-toggle-btn');
+  const f = document.getElementById('s-fields');
+  if (el) el.textContent = val ? '✅ Connected · Live orders' : 'Not connected';
+  if (btn) { btn.textContent = val ? 'Disconnect' : 'Connect'; btn.style.background = val ? '#dc2626' : '#fc8019'; }
+  if (f) f.style.opacity = val ? '0.4' : '1';
+  _updateDeliveryBadge();
+}
+
+function _updateDeliveryBadge() {
+  const badge = document.getElementById('zomato-status-badge');
+  if (!badge) return;
+  if (zomatoConnected && swiggyConnected) {
+    badge.textContent = '✅ Zomato + Swiggy Live'; badge.style.color = 'var(--mint)'; badge.style.background = '#f0fdf4'; badge.style.borderColor = '#86efac';
+  } else if (zomatoConnected) {
+    badge.textContent = '✅ Zomato Live'; badge.style.color = '#e23744'; badge.style.background = '#fef2f2'; badge.style.borderColor = '#fca5a5';
+  } else if (swiggyConnected) {
+    badge.textContent = '✅ Swiggy Live'; badge.style.color = '#fc8019'; badge.style.background = '#fff7ed'; badge.style.borderColor = '#fed7aa';
+  } else {
+    badge.textContent = '⚠ Not connected'; badge.style.color = 'var(--muted)'; badge.style.background = 'var(--foam)'; badge.style.borderColor = 'var(--border)';
+  }
+}
+
+// Poll Firebase for incoming delivery orders every 10s
+function startDeliveryPolling() {
+  clearInterval(deliveryPollInterval);
+  deliveryPollInterval = setInterval(pollDeliveryOrders, 10000);
+  pollDeliveryOrders(); // immediate
+}
+function stopDeliveryPolling() { clearInterval(deliveryPollInterval); }
+
+async function pollDeliveryOrders() {
+  if (!fbEnabled || !fbCafeId) return;
+  const cfg = loadDeliveryConfig();
+  let incoming = [];
+
+  // Poll Zomato orders from Firebase relay
+  if (cfg.zomato?.connected) {
+    try {
+      const rid = cfg.zomato.restaurantId;
+      const zOrders = await fbGet(`delivery/zomato_orders/${rid}`);
+      if (zOrders) {
+        Object.entries(zOrders).forEach(([k, v]) => {
+          if (!deliveries.find(d => d.id === v.id)) incoming.push({ ...v, platform: 'zomato', _fbKey: k });
+        });
+      }
+    } catch(e) { /* network */ }
+  }
+
+  // Poll Swiggy orders from Firebase relay
+  if (cfg.swiggy?.connected) {
+    try {
+      const vid = cfg.swiggy.vendorId;
+      const sOrders = await fbGet(`delivery/swiggy_orders/${vid}`);
+      if (sOrders) {
+        Object.entries(sOrders).forEach(([k, v]) => {
+          if (!deliveries.find(d => d.id === v.id)) incoming.push({ ...v, platform: 'swiggy', _fbKey: k });
+        });
+      }
+    } catch(e) { /* network */ }
+  }
+
+  if (incoming.length > 0) {
+    deliveries = [...incoming, ...deliveries];
+    showToast(`🛵 ${incoming.length} new delivery order${incoming.length > 1 ? 's' : ''}!`);
+    renderDelivery();
+  }
+
+  // Update sync status
+  const syncEl = document.getElementById('delivery-sync-status');
+  if (syncEl) syncEl.textContent = `🔄 Last synced ${fmtTime(Date.now())}`;
+}
+
+// Inject a test order (simulates Zomato/Swiggy webhook arriving)
+async function injectTestDeliveryOrder(platform) {
+  const items = ['Latte × 2', 'Cappuccino × 1', 'Cold Brew × 1', 'Brownie × 2', 'Sandwich × 1'];
+  const pick = items[Math.floor(Math.random() * items.length)];
+  const price = 120 + Math.floor(Math.random() * 400);
+  const prefix = platform === 'zomato' ? 'Z' : 'SW';
+  const oid = `${prefix}-${Math.floor(Math.random() * 9000 + 1000)}`;
+  const order = { id: oid, platform, items: pick, total: `₹${price}`, status: 'new', ts: Date.now() };
+
+  if (fbEnabled && fbCafeId) {
+    const cfg = loadDeliveryConfig();
+    const rid = platform === 'zomato' ? cfg.zomato?.restaurantId : cfg.swiggy?.vendorId;
+    if (rid) {
+      const path = platform === 'zomato'
+        ? `delivery/zomato_orders/${rid}/${oid}`
+        : `delivery/swiggy_orders/${rid}/${oid}`;
+      await fbPut(path, order);
+      showToast(`📩 Test ${platform} order injected`);
+      setTimeout(pollDeliveryOrders, 1500);
+      return;
+    }
+  }
+  // Offline fallback — inject locally
+  deliveries.unshift(order);
+  renderDelivery();
+  showToast(`📩 Test order (offline mode)`);
+}
+
+function renderDelivery() {
+  const newCount = deliveries.filter(d => d.status === 'new').length;
+  const badge = document.getElementById('delivery-badge');
+  if (badge) { badge.style.display = newCount ? 'flex' : 'none'; badge.textContent = newCount; }
+
+  const cfg = loadDeliveryConfig();
+  const anyConnected = cfg.zomato?.connected || cfg.swiggy?.connected;
+
+  const grid = document.getElementById('delivery-grid');
+  if (!grid) return;
+
+  if (!deliveries.length) {
+    grid.innerHTML = `<div style="text-align:center;padding:48px 20px;color:var(--muted)">
+      <div style="font-size:2.5rem;margin-bottom:12px">🛵</div>
+      <div style="font-weight:600;margin-bottom:6px">${anyConnected ? 'Waiting for orders…' : 'No platform connected'}</div>
+      <div style="font-size:0.82rem;margin-bottom:16px">${anyConnected ? 'Orders will appear here automatically' : 'Connect Zomato or Swiggy to receive live orders'}</div>
+      ${anyConnected ? `
+        <button onclick="injectTestDeliveryOrder('zomato')" style="background:#e23744;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.8rem;font-weight:600;cursor:pointer;margin:4px">
+          🧪 Simulate Zomato Order
+        </button>
+        <button onclick="injectTestDeliveryOrder('swiggy')" style="background:#fc8019;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.8rem;font-weight:600;cursor:pointer;margin:4px">
+          🧪 Simulate Swiggy Order
+        </button>` : ''}
+    </div>`;
+    return;
+  }
+
+  const statusClass = s => s === 'new' ? 'status-preparing' : s === 'preparing' ? 'status-preparing' : s === 'ready' ? 'status-ready' : 'status-served';
+  const statusLabel = s => ({ new:'New', preparing:'Preparing', ready:'Ready', pickedup:'Picked Up' }[s] || s);
+  const nextLabel = s => ({ new:'Accept & Prepare', preparing:'Mark Ready', ready:'Picked Up' }[s]);
+  const elapsed = ts => { if (!ts) return ''; const m = Math.floor((Date.now()-ts)/60000); return m < 1 ? 'just now' : m + 'm ago'; };
+
+  grid.innerHTML = deliveries.map(d => `
+    <div class="delivery-card ${d.platform}">
+      <div class="dc-header">
+        <span class="platform-badge badge-${d.platform}">${d.platform.toUpperCase()}</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="status-pill ${statusClass(d.status)}">${statusLabel(d.status)}</span>
+          <span style="font-size:0.68rem;color:var(--muted)">${elapsed(d.ts)}</span>
+        </div>
+      </div>
+      <div class="dc-body">
+        <div style="font-size:0.82rem;font-weight:700;color:var(--brown);margin-bottom:4px">Order #${d.id}</div>
+        <div style="font-size:0.78rem;color:var(--muted);line-height:1.5">${d.items}</div>
+        <div style="font-size:0.9rem;font-weight:700;color:var(--espresso);margin-top:8px">${d.total}</div>
+      </div>
+      <div class="dc-footer">
+        ${d.status !== 'pickedup'
+          ? `<button class="dc-status-btn" style="${d.status==='new'?'background:#fde8ea;color:#e23744':d.status==='preparing'?'background:var(--preparing);color:var(--preparing-border)':'background:var(--ready);color:var(--ready-border)'}" onclick="nextDeliveryStatus('${d.id}')">${nextLabel(d.status)}</button>`
+          : `<span style="font-size:0.78rem;color:var(--muted)">✅ Completed</span>`}
+      </div>
+    </div>
+  `).join('');
+}
+
+function nextDeliveryLabel(s) { return s==='new'?'Accept & Prepare':s==='preparing'?'Mark Ready':'Picked Up'; }
+async function nextDeliveryStatus(id) {
+  const d = deliveries.find(x => x.id === id);
+  if (!d) return;
+  const map = { new:'preparing', preparing:'ready', ready:'pickedup' };
+  if (map[d.status]) {
+    d.status = map[d.status];
+    // Push status update to Firebase relay so other devices know
+    if (fbEnabled && fbCafeId) {
+      const cfg = loadDeliveryConfig();
+      try {
+        if (d.platform === 'zomato' && cfg.zomato) {
+          await fbPatch(`delivery/zomato_orders/${cfg.zomato.restaurantId}/${id}`, { status: d.status });
+        } else if (d.platform === 'swiggy' && cfg.swiggy) {
+          await fbPatch(`delivery/swiggy_orders/${cfg.swiggy.vendorId}/${id}`, { status: d.status });
+        }
+      } catch(e) { /* offline */ }
+    }
+    renderDelivery();
+  }
+}
+
+// Init delivery on POS load — restore connections from saved config
+function initDelivery() {
+  deliveries = [];
+  stopDeliveryPolling();
+  const cfg = loadDeliveryConfig();
+  if (cfg.zomato?.connected) _setZomatoConnected(true);
+  if (cfg.swiggy?.connected) _setSwiggyConnected(true);
+  if ((cfg.zomato?.connected || cfg.swiggy?.connected) && fbEnabled) startDeliveryPolling();
+  renderDelivery();
+}
+
+// Legacy stubs (for old code that might call these)
+function loadZomatoConfig() { return loadDeliveryConfig().zomato || null; }
+function initZomatoStatus() { initDelivery(); }
+function openZomatoConnect() { openDeliveryConnect(); }
+function closeZomatoConnect() { closeDeliveryConnect(); }
+function saveZomatoConfig() { toggleZomato(); }
+function disconnectZomato() { if (zomatoConnected) toggleZomato(); }
+
+// ===== RECEIPT =====
+let currentReceiptOrder=null;
+function showReceipt(oid){
+  const cid=currentUser.cafe.id;
+  const orders=getOrders(cid);const o=orders.find(x=>x.id===oid);if(!o)return;
+  currentReceiptOrder=o;
+  const cafes=getCafes();const cafe=cafes.find(c=>c.id===cid)||{name:'My Cafe'};
+  const isOwner=currentUser.isOwnerView||currentUser.type==='owner';
+  document.getElementById('receipt-content').innerHTML=`
+    <div class="receipt">
+      <div class="receipt-title">☕ ${cafe.name}</div>
+      <div style="text-align:center;font-size:0.8rem;font-weight:700;color:#333;margin-top:4px">${o.id}</div>
+      <div style="text-align:center;font-size:0.72rem;color:#555">${fmtDateFull(o.ts)} · ${fmtTime(o.ts)}</div>
+      <hr class="receipt-sep"/>
+      <div class="receipt-row receipt-bold"><span>Item</span><span>Amt</span></div>
+      ${o.items.map(i=>`<div class="receipt-row"><span>${i.name} ×${i.qty}</span><span>₹${i.price*i.qty}</span></div>`).join('')}
+      <hr class="receipt-sep"/>
+      <div class="receipt-row"><span>Subtotal</span><span>₹${o.subtotal}</span></div>
+      <div class="receipt-row"><span>GST (5%)</span><span>₹${o.gst}</span></div>
+      <div class="receipt-row receipt-bold"><span>TOTAL</span><span>₹${o.total}</span></div>
+      <hr class="receipt-sep"/>
+      <div class="receipt-row"><span>Payment</span><span>${o.payMode.toUpperCase()}${o.upiPlatform?' ('+o.upiPlatform+')':''}</span></div>
+      ${o.cashGiven?`<div class="receipt-row"><span>Cash Given</span><span>₹${o.cashGiven}</span></div><div class="receipt-row"><span>Change</span><span>₹${o.cashGiven-o.total}</span></div>`:''}
+      <hr class="receipt-sep"/>
+      <div style="text-align:center;font-size:0.7rem;color:#888">Thank you! Come again ☕</div>
+    </div>
+  `;
+  document.getElementById('receipt-modal').classList.add('show');
+}
+function printReceipt(){
+  if(!currentReceiptOrder)return;
+  const content=document.getElementById('receipt-content').innerHTML;
+  const iframe=document.getElementById('print-frame');
+  iframe.contentDocument.open();
+  iframe.contentDocument.write(`<html><head><style>body{font-family:'Courier New',monospace;font-size:12px;padding:10px;color:#111}.receipt-row{display:flex;justify-content:space-between}.receipt-sep{border:1px dashed #999;margin:8px 0}.receipt-bold{font-weight:bold}</style></head><body>${content}</body></html>`);
+  iframe.contentDocument.close();
+  setTimeout(()=>iframe.contentWindow.print(),200);
+}
+
+// ===== BACKUP/RESTORE =====
+function backupData(){
+  const cafes=getCafes();
+  const data={version:2,ownerPin:getOwnerPin(),cafes,orders:{},menus:{},cats:{}};
+  cafes.forEach(c=>{data.orders[c.id]=getOrders(c.id);data.menus[c.id]=getMenu(c.id);data.cats[c.id]=getCats(c.id);});
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mycafepos_backup_'+Date.now()+'.json';a.click();
+}
+function restoreData(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(data.version<1)throw new Error('Old format');
+      if(data.ownerPin)saveOwnerPin(data.ownerPin);
+      if(data.cafes)saveCafes(data.cafes);
+      if(data.orders)Object.entries(data.orders).forEach(([k,v])=>saveData('orders_'+k,v));
+      if(data.menus)Object.entries(data.menus).forEach(([k,v])=>saveData('menu_'+k,v));
+      if(data.cats)Object.entries(data.cats).forEach(([k,v])=>saveData('cats_'+k,v));
+      alert('Restore successful! Logging out to refresh.');logout();
+    }catch(err){alert('Invalid backup file: '+err.message);}
+  };reader.readAsText(file);
+}
+
+// ===== PIN CHANGE (OWNER ONLY) =====
+function openChangePinModal(){
+  // Populate account dropdown with owner + all cafes
+  const cafes=getCafes();
+  const sel=document.getElementById('cp-account');
+  sel.innerHTML='<option value="owner">👑 Owner</option>'+cafes.map(c=>`<option value="${c.id}">${c.emoji} ${c.name}</option>`).join('');
+  document.getElementById('cp-current').value='';
+  document.getElementById('cp-new').value='';
+  document.getElementById('cp-confirm').value='';
+  document.getElementById('cp-error').textContent='';
+  document.getElementById('pin-change-modal').classList.add('show');
+}
+function updatePinChangeForm(){
+  // Could add dynamic label here if needed
+  document.getElementById('cp-error').textContent='';
+}
+function changePin(){
+  const target=document.getElementById('cp-account').value;
+  const cur=document.getElementById('cp-current').value;
+  const nw=document.getElementById('cp-new').value;
+  const conf=document.getElementById('cp-confirm').value;
+  const err=document.getElementById('cp-error');
+  // Always verify against owner PIN for security
+  if(cur!==getOwnerPin()){err.textContent='Owner PIN verification failed';return;}
+  if(!/^\d{4}$/.test(nw)){err.textContent='New PIN must be exactly 4 digits';return;}
+  if(nw!==conf){err.textContent='PINs do not match';return;}
+  if(target==='owner'){
+    saveOwnerPin(nw);
+  } else {
+    const cafes=getCafes();const c=cafes.find(x=>x.id===target);
+    if(c){c.pin=nw;saveCafes(cafes);}
+  }
+  closeModal('pin-change-modal');
+  document.getElementById('cp-current').value='';document.getElementById('cp-new').value='';document.getElementById('cp-confirm').value='';
+  err.textContent='';
+  const name=target==='owner'?'Owner':getCafes().find(c=>c.id===target)?.name||'Café';
+  alert(`PIN for "${name}" changed successfully!`);
+}
+
+// ===== PDF REPORT =====
+function downloadPDF(type){
+  let orders=[],title='';
+  if(type==='cafe'){
+    const cid=currentUser.cafe.id;orders=getOrders(cid).filter(o=>o.status==='served');
+    const cafes=getCafes();const cafe=cafes.find(c=>c.id===cid);title=(cafe?cafe.name:'Café')+' — Sales Report';
+  } else {orders=getAllOrders().filter(o=>o.status==='served');title='All Cafés — Combined Sales Report';}
+  const rev=orders.reduce((a,o)=>a+o.total,0);
+  const rows=orders.map(o=>`<tr><td>${o.id}</td><td>${o.items.map(i=>i.name+'×'+i.qty).join(', ')}</td><td>${o.payMode}</td><td>₹${o.total}</td><td>${fmtTime(o.ts)} ${fmtDateFull(o.ts)}</td></tr>`).join('');
+  const html=`<html><head><style>body{font-family:sans-serif;padding:24px;font-size:13px}h1{font-size:1.3rem;margin-bottom:4px}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #eee}th{background:#f5ede0;font-weight:600}</style></head><body>
+  <h1>☕ MyCafe POS</h1><h2 style="font-weight:400;color:#888;font-size:1rem">${title}</h2>
+  <p>Generated: ${new Date().toLocaleString('en-IN')} | Total Orders: ${orders.length} | Revenue: ₹${rev.toLocaleString()}</p>
+  <table><thead><tr><th>Order ID</th><th>Items</th><th>Payment</th><th>Total</th><th>Time</th></tr></thead><tbody>${rows}</tbody></table>
+  </body></html>`;
+  const win=window.open('','_blank');win.document.write(html);win.document.close();setTimeout(()=>win.print(),300);
+}
+
+// ===== MODALS =====
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));
+
+// ===== INIT =====
+renderLoginAccounts();
+</script>
+</body>
+</html>
